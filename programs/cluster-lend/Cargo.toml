@@ -1,0 +1,22 @@
+[package]
+name = "cluster-lend"
+version = "0.1.0"
+description = "Clusterfi lending program"
+edition = "2021"
+
+[lib]
+crate-type = ["cdylib", "lib"]
+name = "cluster_lend"
+
+[features]
+no-entrypoint = []
+no-idl = []
+no-log-ix-name = []
+cpi = ["no-entrypoint"]
+default = []
+
+[dependencies]
+anchor-lang = "0.28.0"
+anchor-client = { version = "0.28.0" }
+anchor-spl = { version = "0.28.0", features = ["dex", "token"] }
+pyth-sdk-solana = "0.9.0"
