@@ -5,31 +5,31 @@ use crate::{
     utils::seeds,
 };
 
-pub fn process(ctx: Context<InitMarketCtx>, quote_currency: [u8; 32]) -> Result<()> {
+pub fn process(ctx: Context<InitLendingMarket>, quote_currency: [u8; 32]) -> Result<()> {
     let market = &mut ctx.accounts.market.load_init()?;
 
-    market.init(InitMarketParams {
+    market.init(InitLendingMarketParams {
         quote_currency,
         owner: ctx.accounts.owner.key(),
-        bump_seed: ctx.bumps.market_authority,
+        bump_seed: ctx.bumps.lending_market_authority,
     });
 
     Ok(())
 }
 
 #[derive(Accounts)]
-pub struct InitMarketCtx<'info> {
+pub struct InitLendingMarket<'info> {
     #[account(mut)]
     pub owner: Signer<'info>,
 
     #[account(zero)]
-    pub market: AccountLoader<'info, Market>,
+    pub lending_market: AccountLoader<'info, LendingMarket>,
 
     #[account(
-        seeds = [seeds::LENDING_MARKET_AUTH, market.key().as_ref()],
+        seeds = [seeds::LENDING_MARKET_AUTH, lending_market.key().as_ref()],
         bump
     )]
-    pub market_authority: AccountInfo<'info>,
+    pub lending_market_authority: AccountInfo<'info>,
 
     pub system_program: Program<'info, System>,
     pub rent: Sysvar<'info, Rent>,
