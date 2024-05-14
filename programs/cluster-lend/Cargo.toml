@@ -28,3 +28,7 @@ fixed = { version = "1.23.1" }
 fixed-macro = "1.1"
 uint = "0.9.5"
 arrayref = { version = "0.3.6", optional = true }
+strum = { git = "https://github.com/hubbleprotocol/strum", features = [
+    "derive",
+], branch = "checked_arithmetics" }
+static_assertions = "1.1.0"

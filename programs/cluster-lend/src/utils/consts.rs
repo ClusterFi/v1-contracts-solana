@@ -90,37 +90,6 @@ pub fn ten_pow(x: usize) -> u64 {
 
     POWERS_OF_TEN[x]
 }
-
-pub const SQUADS_PROGRAM_ID_V3_MAINNET_PROD: Pubkey =
-    pubkey!("SMPLecH534NA9acpos4G6x7uf3LWbCAwZQE9e8ZekMu");
-
-pub const SQUADS_PROGRAM_ID_V3_MAINNET_DEV: Pubkey =
-    pubkey!("84Ue9gKQUsStFJQCNQpsqvbceo7fKYSSCCMXxMZ5PkiW");
-
-pub const SQUADS_PROGRAM_ID_V4_MAINNET_PROD: Pubkey =
-    pubkey!("SQDS4ep65T869zMMBKyuUq6aD6EgTu8psMjkvj52pCf");
-
-pub const SQUADS_PROGRAM_ID_V4_MAINNET_DEV: Pubkey =
-    pubkey!("STAG3xkFMyVK3sRtQhipsKuLpRGbgospDpVdNyJqDpS");
-
-pub const FLEX_LEND_ID_MAINNET_PROD: Pubkey =
-    pubkey!("FL3X2pRsQ9zHENpZSKDRREtccwJuei8yg9fwDu9UN69Q");
-
-pub const METEORA_DYNAMIC_POOL_ID_MAINNET: Pubkey =
-    pubkey!("24Uqj9JCLxUeoC3hGfh5W3s9FM9uCHDS2SG3LYwBpyTi");
-
-pub const DEFI_CARROT_ID_MAINNET: Pubkey = pubkey!("CarrotwivhMpDnm27EHmRLeQ683Z1PufuqEmBZvD282s");
-
-pub const CPI_WHITELISTED_ACCOUNTS: [CpiWhitelistedAccount; 7] = [
-    CpiWhitelistedAccount::new(FLEX_LEND_ID_MAINNET_PROD, 1),
-    CpiWhitelistedAccount::new(SQUADS_PROGRAM_ID_V3_MAINNET_PROD, 1),
-    CpiWhitelistedAccount::new(SQUADS_PROGRAM_ID_V3_MAINNET_DEV, 1),
-    CpiWhitelistedAccount::new(SQUADS_PROGRAM_ID_V4_MAINNET_PROD, 1),
-    CpiWhitelistedAccount::new(SQUADS_PROGRAM_ID_V4_MAINNET_DEV, 1),
-    CpiWhitelistedAccount::new(METEORA_DYNAMIC_POOL_ID_MAINNET, 1),
-    CpiWhitelistedAccount::new(DEFI_CARROT_ID_MAINNET, 1),
-];
-
 pub struct CpiWhitelistedAccount {
     pub program_id: Pubkey,
     pub whitelist_level: usize,

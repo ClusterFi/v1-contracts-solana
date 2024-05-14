@@ -1,9 +1,11 @@
 use anchor_lang::prelude::*;
 
+mod error;
 mod processors;
 mod state;
 mod utils;
 
+use error::*;
 use processors::*;
 use state::*;
 use utils::*;

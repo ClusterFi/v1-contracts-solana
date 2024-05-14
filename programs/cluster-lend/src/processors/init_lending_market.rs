@@ -6,12 +6,12 @@ use crate::{
 };
 
 pub fn process(ctx: Context<InitLendingMarket>, quote_currency: [u8; 32]) -> Result<()> {
-    let market = &mut ctx.accounts.market.load_init()?;
+    let market = &mut ctx.accounts.lending_market.load_init()?;
 
     market.init(InitLendingMarketParams {
         quote_currency,
         owner: ctx.accounts.owner.key(),
-        bump_seed: ctx.bumps.lending_market_authority,
+        bump_seed: *ctx.bumps.get("lending_market_authority").unwrap(),
     });
 
     Ok(())

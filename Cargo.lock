@@ -284,7 +284,7 @@ checksum = "a125e4b0cc046cfec58f5aa25038e34cf440151d58f0db3afc55308251fe936d"
 dependencies = [
  "anyhow",
  "bs58 0.5.1",
- "heck",
+ "heck 0.3.3",
  "proc-macro2 1.0.82",
  "quote 1.0.36",
  "serde",
@@ -965,6 +965,8 @@ dependencies = [
  "fixed-macro",
  "num_enum 0.7.2",
  "pyth-sdk-solana",
+ "static_assertions",
+ "strum",
  "uint",
 ]
 
@@ -1774,6 +1776,12 @@ checksum = "6d621efb26863f0e9924c6ac577e8275e5e6b77455db64ffa6c65c904e9e132c"
 dependencies = [
  "unicode-segmentation",
 ]
+
+[[package]]
+name = "heck"
+version = "0.4.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "95505c38b4572b2d910cecb0281560f54b440a19336cbbcb27bf6ce6adc6f5a8"
 
 [[package]]
 name = "hermit-abi"
@@ -4545,6 +4553,26 @@ name = "strsim"
 version = "0.10.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "73473c0e59e6d5812c5dfe2a064a6444949f089e20eec9a2e5506596494e4623"
+
+[[package]]
+name = "strum"
+version = "0.24.0"
+source = "git+https://github.com/hubbleprotocol/strum?branch=checked_arithmetics#95f44367da40546bc94f4ff565268f45fb68ed5e"
+dependencies = [
+ "strum_macros",
+]
+
+[[package]]
+name = "strum_macros"
+version = "0.24.0"
+source = "git+https://github.com/hubbleprotocol/strum?branch=checked_arithmetics#95f44367da40546bc94f4ff565268f45fb68ed5e"
+dependencies = [
+ "heck 0.4.1",
+ "proc-macro2 1.0.82",
+ "quote 1.0.36",
+ "rustversion",
+ "syn 1.0.109",
+]
 
 [[package]]
 name = "subtle"
