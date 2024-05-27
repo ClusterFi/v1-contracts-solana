@@ -7,12 +7,12 @@ use crate::consts::{
     PROGRAM_VERSION,
 };
 
-static_assertions::const_assert_eq!(0, std::mem::size_of::<LendingMarket>() % 8);
+static_assertions::const_assert_eq!(0, std::mem::size_of::<Market>() % 8);
 
 #[derive(PartialEq, Eq, Derivative)]
 #[account(zero_copy)]
 #[repr(C)]
-pub struct LendingMarket {
+pub struct Market {
     pub version: u64,
     pub bump_seed: u64,
 
@@ -40,7 +40,7 @@ pub struct LendingMarket {
     pub global_allowed_borrow_value: u64,
 }
 
-impl Default for LendingMarket {
+impl Default for Market {
     fn default() -> Self {
         Self {
             version: 0,
@@ -63,11 +63,10 @@ impl Default for LendingMarket {
     }
 }
 
-impl LendingMarket {
+impl Market {
     pub fn init(&mut self, params: InitLendingMarketParams) {
         *self = Self::default();
         self.version = PROGRAM_VERSION as u64;
-        self.bump_seed = params.bump_seed as u64;
         self.owner = params.owner;
         self.quote_currency = params.quote_currency;
     }
@@ -78,7 +77,6 @@ impl LendingMarket {
 }
 
 pub struct InitLendingMarketParams {
-    pub bump_seed: u8,
     pub owner: Pubkey,
     pub quote_currency: [u8; 32],
 }

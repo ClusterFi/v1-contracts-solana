@@ -1,8 +1,8 @@
 use anchor_lang::prelude::*;
 
-mod lending_market;
+mod market;
 
-pub use lending_market::*;
+pub use market::*;
 use num_enum::TryFromPrimitive;
 use strum::EnumString;
 

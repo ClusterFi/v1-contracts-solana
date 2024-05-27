@@ -11,7 +11,6 @@ pub fn process(ctx: Context<InitLendingMarket>, quote_currency: [u8; 32]) -> Res
     market.init(InitLendingMarketParams {
         quote_currency,
         owner: ctx.accounts.owner.key(),
-        bump_seed: *ctx.bumps.get("lending_market_authority").unwrap(),
     });
 
     Ok(())
