@@ -1,5 +1,4 @@
 use anchor_lang::solana_program;
-use solana_program::{pubkey, pubkey::Pubkey};
 
 use crate::utils::fraction::{fraction, Fraction};
 
@@ -50,10 +49,6 @@ pub const GLOBAL_ALLOWED_BORROW_VALUE: u64 = 45_000_000;
 
 pub const DEFAULT_BORROW_FACTOR_PCT: u64 = 100;
 
-pub const ELEVATION_GROUP_NONE: u8 = 0;
-
-pub const MAX_NUM_ELEVATION_GROUPS: u8 = 10;
-
 pub const USD_DECIMALS: u32 = 6;
 
 pub const MIN_NET_VALUE_IN_OBLIGATION: Fraction = fraction!(0.000001);
@@ -89,17 +84,4 @@ pub fn ten_pow(x: usize) -> u64 {
     }
 
     POWERS_OF_TEN[x]
-}
-pub struct CpiWhitelistedAccount {
-    pub program_id: Pubkey,
-    pub whitelist_level: usize,
-}
-
-impl CpiWhitelistedAccount {
-    pub const fn new(program_id: Pubkey, whitelist_level: usize) -> CpiWhitelistedAccount {
-        CpiWhitelistedAccount {
-            program_id,
-            whitelist_level,
-        }
-    }
 }

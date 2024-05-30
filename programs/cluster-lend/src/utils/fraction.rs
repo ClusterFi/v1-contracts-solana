@@ -2,8 +2,6 @@ use fixed::traits::{FromFixed, ToFixed};
 pub use fixed::types::U68F60 as Fraction;
 pub use fixed_macro::types::U68F60 as fraction;
 
-use crate::LendingError;
-
 #[allow(clippy::assign_op_pattern)]
 #[allow(clippy::reversed_empty_ranges)]
 mod uint_types {
@@ -201,6 +199,8 @@ use std::{
     fmt::Display,
     ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Sub, SubAssign},
 };
+
+use crate::errors::LendingError;
 
 impl Add for BigFraction {
     type Output = Self;

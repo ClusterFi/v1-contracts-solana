@@ -1,8 +1,11 @@
+[toolchain]
+
 [features]
 seeds = false
 skip-lint = false
+
 [programs.localnet]
-cluster_lend = "E9Jcn8HfLEc9dG6VmPQqHhwqKEJNRUc1VLFhrvxdgkx9"
+cluster_lend = "FtQFCy8pGnywDh1r2wZJWH8e5KHrkJvDzjTGv3LAAWmj"
 
 [registry]
 url = "https://api.apr.dev"
