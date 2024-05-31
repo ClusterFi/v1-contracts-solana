@@ -2,6 +2,9 @@ use anchor_lang::solana_program;
 
 use crate::utils::fraction::{fraction, Fraction};
 
+pub const VALUE_BYTE_MAX_ARRAY_LEN_MARKET_UPDATE: usize = 72;
+pub const VALUE_BYTE_ARRAY_LEN_SHORT_UPDATE: usize = 32;
+
 pub const SLOTS_PER_SECOND: u64 = 2;
 pub const SLOTS_PER_MINUTE: u64 = SLOTS_PER_SECOND * 60;
 pub const SLOTS_PER_HOUR: u64 = SLOTS_PER_MINUTE * 60;
@@ -39,15 +42,9 @@ pub const LENDING_MARKET_SIZE: usize = 4656;
 pub const RESERVE_SIZE: usize = 8616;
 pub const OBLIGATION_SIZE: usize = 3336;
 pub const RESERVE_CONFIG_SIZE: usize = 648;
-pub const REFERRER_TOKEN_STATE_SIZE: usize = 352;
-pub const USER_METADATA_SIZE: usize = 1024;
-pub const REFERRER_STATE_SIZE: usize = 64;
-pub const SHORT_URL_SIZE: usize = 68;
 pub const GLOBAL_UNHEALTHY_BORROW_VALUE: u64 = 50_000_000;
 
 pub const GLOBAL_ALLOWED_BORROW_VALUE: u64 = 45_000_000;
-
-pub const DEFAULT_BORROW_FACTOR_PCT: u64 = 100;
 
 pub const USD_DECIMALS: u32 = 6;
 

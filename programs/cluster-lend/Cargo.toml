@@ -26,4 +26,11 @@ fixed-macro = "1.1"
 uint = "0.9.5"
 
 num_enum = "0.7.2"
-strum = "0.26.2"
+derivative = "2.2.0"
+static_assertions = "1.1.0"
+
+strum = { git = "https://github.com/hubbleprotocol/strum", features = [
+    "derive",
+], branch = "checked_arithmetics" }
+
+pyth-sdk-solana = "0.10.1"

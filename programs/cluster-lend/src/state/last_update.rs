@@ -19,7 +19,6 @@ bitflags! {
         const PRICE_AGE_CHECKED =   0b_0000_0010;
         const TWAP_CHECKED =        0b_0000_0100;
         const TWAP_AGE_CHECKED =    0b_0000_1000;
-        const HEURISTIC_CHECKED =   0b_0001_0000;
     }
 }
 
