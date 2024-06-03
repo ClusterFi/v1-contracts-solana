@@ -2,12 +2,14 @@ pub mod constants;
 pub mod errors;
 pub mod events;
 pub mod instructions;
+pub mod lending_market;
 pub mod state;
 pub mod utils;
 
 use anchor_lang::prelude::*;
 use constants::VALUE_BYTE_MAX_ARRAY_LEN_MARKET_UPDATE;
 use instructions::*;
+use utils::constraints::emergency_mode_disabled;
 
 declare_id!("FtQFCy8pGnywDh1r2wZJWH8e5KHrkJvDzjTGv3LAAWmj");
 

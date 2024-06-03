@@ -6,39 +6,57 @@ use anchor_lang::{
 use anchor_spl::token::{self, Mint, Token, TokenAccount};
 
 use crate::{
-    check_cpi, gen_signer_seeds,
-    state::{LendingMarket, Reserve},
-    utils::seeds,
+    constants::PROGRAM_VERSION,
+    errors::LendingError,
+    gen_signer_seeds,
+    lending_market::refresh_reserve,
+    state::{LendingAction, LendingMarket, Reserve, ReserveStatus},
+    utils::{seeds, token_transfer},
 };
 
 pub fn process_deposit_reserve_liquidity(
     ctx: Context<DepositReserveLiquidityCtx>,
     liquidity_amount: u64,
 ) -> Result<()> {
-    check_cpi!(ctx);
-    lending_checks::deposit_reserve_liquidity_checks(
-        &crate::state::nested_accounts::DepositReserveLiquidityAccounts {
-            lending_market: ctx.accounts.lending_market.clone(),
-            lending_market_authority: ctx.accounts.lending_market_authority.clone(),
-            reserve: ctx.accounts.reserve.clone(),
-            reserve_liquidity_supply: ctx.accounts.reserve_liquidity_supply.clone(),
-            reserve_collateral_mint: ctx.accounts.reserve_collateral_mint.clone(),
-            owner: ctx.accounts.owner.clone(),
-            user_source_liquidity: ctx.accounts.user_source_liquidity.clone(),
-            user_destination_collateral: ctx.accounts.user_destination_collateral.clone(),
-            token_program: ctx.accounts.token_program.clone(),
-        },
-    )?;
+    require!(liquidity_amount != 0, LendingError::InvalidAmount);
 
-    let clock = Clock::get()?;
-    let reserve = &mut ctx.accounts.reserve.load_mut()?;
-    let lending_market = &ctx.accounts.lending_market.load()?;
+    let source_liquidity_info = &ctx.accounts.user_source_liquidity;
+    let destination_collateral_info = &ctx.accounts.user_destination_collateral;
+    let reserve_info = &ctx.accounts.reserve;
+    let reserve_liquidity_supply_info = &ctx.accounts.reserve_liquidity_supply;
+    let reserve_collateral_mint_info = &ctx.accounts.reserve_collateral_mint;
+    let lending_market_info = &ctx.accounts.lending_market;
+    let lending_market_authority_info = &ctx.accounts.lending_market_authority;
+    let user_transfer_authority_info = &ctx.accounts.owner;
+    let clock = &Clock::get()?;
+
+    let lending_market = &mut lending_market_info.load()?;
+    let reserve = &mut reserve_info.load_mut()?;
+
+    if reserve.liquidity.supply_vault == source_liquidity_info.key() {
+        msg!("Reserve liquidity supply cannot be used as the source liquidity provided");
+        return err!(LendingError::InvalidAccountInput);
+    }
+    if reserve.collateral.supply_vault == destination_collateral_info.key() {
+        msg!("Reserve collateral supply cannot be used as the destination collateral provided");
+        return err!(LendingError::InvalidAccountInput);
+    }
+
+    if reserve.config.status() == ReserveStatus::Obsolete {
+        msg!("Reserve is not active");
+        return err!(LendingError::ReserveObsolete);
+    }
+
+    if reserve.version != PROGRAM_VERSION as u64 {
+        msg!("Reserve version does not match the program version");
+        return err!(LendingError::ReserveDeprecated);
+    }
+
+    refresh_reserve(reserve, &clock, None)?;
 
     let lending_market_key = ctx.accounts.lending_market.key();
     let authority_signer_seeds =
         gen_signer_seeds!(lending_market_key.as_ref(), lending_market.bump as u8);
-
-    refresh_reserve(reserve, &clock, None, lending_market.referral_fee_bps)?;
 
     let initial_reserve_token_balance =
         token::accessor::amount(&ctx.accounts.reserve_liquidity_supply.to_account_info())?;
