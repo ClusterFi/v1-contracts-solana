@@ -4,6 +4,7 @@ use std::{
 };
 
 use anchor_lang::{account, err, prelude::*, solana_program::clock::Slot, Result};
+use anchor_spl::token::Mint;
 use derivative::Derivative;
 
 use super::{AssetTier, BigFractionBytes, LastUpdate};
@@ -41,7 +42,7 @@ pub struct Obligation {
     pub borrows_asset_tiers: [u8; 5],
     pub num_of_obsolete_reserves: u8,
     pub has_debt: u8,
-    pub borrowing_disabled: u8,
+    pub padding_2: u8,
 
     pub reserved: [u64; 32],
 }
@@ -65,9 +66,9 @@ impl Default for Obligation {
             borrows_asset_tiers: [u8::MAX; 5],
             num_of_obsolete_reserves: 0,
             has_debt: 0,
-            borrowing_disabled: 0,
             padding_0: 0,
             padding_1: 0,
+            padding_2: 0,
             reserved: [0; 32],
         }
     }
@@ -463,4 +464,44 @@ impl ObligationLiquidity {
 
         Ok(())
     }
+}
+
+pub fn check_obligation_seeds(
+    tag: u8,
+    seed1_account: &AccountInfo,
+    seed2_account: &AccountInfo,
+) -> Result<()> {
+    let seed1_key = seed1_account.key();
+    let seed2_key = seed2_account.key();
+    match tag {
+        0 => {
+            require!(
+                seed1_key == Pubkey::default() && seed2_key == Pubkey::default(),
+                LendingError::InvalidObligationSeedsValue
+            );
+        }
+        1 => {
+            let _mint1_check =
+                Mint::try_deserialize(&mut seed1_account.data.borrow().as_ref()).unwrap();
+            let _mint2_check =
+                Mint::try_deserialize(&mut seed2_account.data.borrow().as_ref()).unwrap();
+        }
+        2 => {
+            let _mint_check =
+                Mint::try_deserialize(&mut seed1_account.data.borrow().as_ref()).unwrap();
+            require!(
+                seed1_key == seed2_key,
+                LendingError::InvalidObligationSeedsValue
+            )
+        }
+        3 => {
+            let _mint1_check =
+                Mint::try_deserialize(&mut seed1_account.data.borrow().as_ref()).unwrap();
+            let _mint2_check =
+                Mint::try_deserialize(&mut seed2_account.data.borrow().as_ref()).unwrap();
+        }
+        _ => {}
+    }
+
+    Ok(())
 }

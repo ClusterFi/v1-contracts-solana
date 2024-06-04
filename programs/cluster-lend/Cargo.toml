@@ -18,6 +18,11 @@ default = []
 [dependencies]
 anchor-lang = "0.29.0"
 anchor-spl = "0.29.0"
+
+solana-program = "=1.17.18"
+solana-sdk = "=1.17.18"
+solana-program-test = "=1.17.18"
+
 arrayref = "0.3.7"
 bitflags = "2.5.0"
 bytemuck = "1.16.0"

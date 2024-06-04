@@ -1,40 +1,30 @@
 use anchor_lang::{
     prelude::*,
     solana_program::sysvar::{instructions::Instructions as SysInstructions, SysvarId},
-    Accounts,
 };
-use anchor_spl::{
-    token,
-    token::{Mint, Token, TokenAccount},
-};
+use anchor_spl::token::{self, Mint, Token, TokenAccount};
 
 use crate::{
     check_refresh_ixs, gen_signer_seeds,
     lending_market::{lending_checks, lending_operations},
-    state::{obligation::Obligation, LendingMarket, RedeemReserveCollateralAccounts, Reserve},
     utils::{seeds, token_transfer},
-    xmsg, LendingAction, LiquidateAndRedeemResult, ReserveFarmKind,
+    xmsg, LendingAction, LendingMarket, LiquidateAndRedeemResult, Obligation,
+    RedeemReserveCollateralAccounts, Reserve,
 };
 
-pub fn process_liquidate(
-    ctx: Context<LiquidateCtx>,
+pub fn process_liquidate_obligation(
+    ctx: Context<LiquidateObligationCtx>,
     liquidity_amount: u64,
     min_acceptable_received_collateral_amount: u64,
     max_allowed_ltv_override_percent: u64,
 ) -> Result<()> {
     xmsg!(
-        "liquidate amount {} max_allowed_ltv_override_percent {}",
+        "LiquidateObligationAndRedeemReserveCollateral amount {} max_allowed_ltv_override_percent {}",
         liquidity_amount,
         max_allowed_ltv_override_percent
     );
 
-    check_refresh_ixs!(
-        ctx,
-        withdraw_reserve,
-        repay_reserve,
-        ReserveFarmKind::Collateral,
-        ReserveFarmKind::Debt
-    );
+    check_refresh_ixs!(ctx, withdraw_reserve, repay_reserve);
 
     lending_checks::liquidate_obligation_checks(&ctx)?;
     lending_checks::redeem_reserve_collateral_checks(&RedeemReserveCollateralAccounts {
@@ -85,8 +75,7 @@ pub fn process_liquidate(
             &ctx.accounts.withdraw_reserve,
         );
 
-    let authority_signer_seeds =
-        gen_signer_seeds!(lending_market_key, lending_market.bump_seed as u8);
+    let authority_signer_seeds = gen_signer_seeds!(lending_market_key, lending_market.bump as u8);
 
     let LiquidateAndRedeemResult {
         repay_amount,
@@ -221,7 +210,7 @@ pub fn process_liquidate(
 }
 
 #[derive(Accounts)]
-pub struct LiquidateCtx<'info> {
+pub struct LiquidateObligationCtx<'info> {
     pub liquidator: Signer<'info>,
 
     #[account(mut,
@@ -230,9 +219,11 @@ pub struct LiquidateCtx<'info> {
     pub obligation: AccountLoader<'info, Obligation>,
 
     pub lending_market: AccountLoader<'info, LendingMarket>,
+
+    /// CHECK: market authority PDA
     #[account(
         seeds = [seeds::LENDING_MARKET_AUTH, lending_market.key().as_ref()],
-        bump = lending_market.load()?.bump_seed as u8,
+        bump = lending_market.load()?.bump as u8,
     )]
     pub lending_market_authority: AccountInfo<'info>,
 
@@ -240,6 +231,7 @@ pub struct LiquidateCtx<'info> {
         has_one = lending_market
     )]
     pub repay_reserve: AccountLoader<'info, Reserve>,
+
     #[account(mut,
         address = repay_reserve.load()?.liquidity.supply_vault
     )]
@@ -275,6 +267,7 @@ pub struct LiquidateCtx<'info> {
 
     pub token_program: Program<'info, Token>,
 
+    /// CHECK: instruction_sysvar account
     #[account(address = SysInstructions::id())]
     pub instruction_sysvar_account: AccountInfo<'info>,
 }

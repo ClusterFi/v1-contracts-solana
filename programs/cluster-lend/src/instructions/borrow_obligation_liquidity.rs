@@ -1,26 +1,25 @@
-use std::cell::RefMut;
-
 use anchor_lang::{
     prelude::*,
     solana_program::sysvar::{instructions::Instructions as SysInstructions, SysvarId},
     Accounts,
 };
 use anchor_spl::token::{self, Token, TokenAccount};
-use lending_checks::validate_referrer_token_state;
 
 use crate::{
-    check_refresh_ixs, gen_signer_seeds,
+    check_refresh_ixs,
+    errors::LendingError,
+    gen_signer_seeds,
     lending_market::{lending_checks, lending_operations},
-    state::{obligation::Obligation, CalculateBorrowResult, LendingMarket, Reserve},
+    state::{LendingMarket, Reserve},
     utils::{seeds, token_transfer},
-    xmsg, LendingAction, LendingError, ReferrerTokenState, ReserveFarmKind,
+    xmsg, CalculateBorrowResult, LendingAction, Obligation,
 };
 
-pub fn process<'info>(
-    ctx: Context<'_, '_, '_, 'info, BorrowObligationLiquidity<'info>>,
+pub fn process_borrow_obligation_liquidity(
+    ctx: Context<BorrowObligationLiquidityCtx>,
     liquidity_amount: u64,
 ) -> Result<()> {
-    check_refresh_ixs!(ctx, borrow_reserve, ReserveFarmKind::Debt);
+    check_refresh_ixs!(ctx, borrow_reserve);
     lending_checks::borrow_obligation_liquidity_checks(&ctx)?;
 
     let borrow_reserve = &mut ctx.accounts.borrow_reserve.load_mut()?;
@@ -30,29 +29,7 @@ pub fn process<'info>(
     let clock = &Clock::get()?;
 
     let authority_signer_seeds =
-        gen_signer_seeds!(lending_market_key.as_ref(), lending_market.bump_seed as u8);
-
-    let referrer_token_state_option: Option<RefMut<ReferrerTokenState>> =
-        if obligation.has_referrer() {
-            match &ctx.accounts.referrer_token_state {
-                Some(referrer_token_state_loader) => {
-                    let referrer_token_state = referrer_token_state_loader.load_mut()?;
-
-                    validate_referrer_token_state(
-                        &referrer_token_state,
-                        referrer_token_state_loader.key(),
-                        borrow_reserve.liquidity.mint_pubkey,
-                        obligation.referrer,
-                        ctx.accounts.borrow_reserve.key(),
-                    )?;
-
-                    Some(referrer_token_state)
-                }
-                None => return err!(LendingError::ReferrerAccountMissing),
-            }
-        } else {
-            None
-        };
+        gen_signer_seeds!(lending_market_key.as_ref(), lending_market.bump as u8);
 
     let initial_reserve_token_balance =
         token::accessor::amount(&ctx.accounts.reserve_source_liquidity.to_account_info())?;
@@ -69,7 +46,6 @@ pub fn process<'info>(
         liquidity_amount,
         clock,
         ctx.accounts.borrow_reserve.key(),
-        referrer_token_state_option,
     )?;
 
     xmsg!("pnl: Borrow obligation liquidity {receive_amount} with borrow_fee {borrow_fee}",);
@@ -108,7 +84,7 @@ pub fn process<'info>(
 }
 
 #[derive(Accounts)]
-pub struct BorrowObligationLiquidity<'info> {
+pub struct BorrowObligationLiquidityCtx<'info> {
     pub owner: Signer<'info>,
 
     #[account(mut,
@@ -118,9 +94,11 @@ pub struct BorrowObligationLiquidity<'info> {
     pub obligation: AccountLoader<'info, Obligation>,
 
     pub lending_market: AccountLoader<'info, LendingMarket>,
+
+    /// CHECK: market authority PDA
     #[account(
         seeds = [seeds::LENDING_MARKET_AUTH, lending_market.key().as_ref()],
-        bump = lending_market.load()?.bump_seed as u8,
+        bump = lending_market.load()?.bump as u8,
     )]
     pub lending_market_authority: AccountInfo<'info>,
 
@@ -145,11 +123,9 @@ pub struct BorrowObligationLiquidity<'info> {
     )]
     pub user_destination_liquidity: Box<Account<'info, TokenAccount>>,
 
-    #[account(mut)]
-    pub referrer_token_state: Option<AccountLoader<'info, ReferrerTokenState>>,
-
     pub token_program: Program<'info, Token>,
 
+    /// CHECK: instruction_sysvar account
     #[account(address = SysInstructions::id())]
     pub instruction_sysvar_account: AccountInfo<'info>,
 }

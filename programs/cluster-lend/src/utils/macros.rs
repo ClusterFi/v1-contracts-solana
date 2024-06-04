@@ -27,16 +27,15 @@ macro_rules! try_block {
 
 #[macro_export]
 macro_rules! check_refresh_ixs {
-    ($ctx:expr, $reserve:ident, $mode:expr) => {{
+    ($ctx:expr, $reserve:ident) => {{
         let _reserve = $ctx.accounts.$reserve.load()?;
         $crate::utils::check_refresh(
             &$ctx.accounts.instruction_sysvar_account,
             &[($ctx.accounts.$reserve.to_account_info().key(), &_reserve)],
             &$ctx.accounts.obligation.to_account_info().key(),
-            &[$mode],
         )?;
     }};
-    ($ctx:expr, $reserve_one:ident, $reserve_two:ident, $mode_one:expr, $mode_two:expr) => {{
+    ($ctx:expr, $reserve_one:ident, $reserve_two:ident) => {{
         let _reserve_one = $ctx.accounts.$reserve_one.load()?;
         let _reserve_two = $ctx.accounts.$reserve_two.load()?;
 
@@ -54,7 +53,6 @@ macro_rules! check_refresh_ixs {
                     ),
                 ],
                 &$ctx.accounts.obligation.to_account_info().key(),
-                &[$mode_one, $mode_two],
             )?;
         } else {
             $crate::utils::check_refresh(
@@ -70,7 +68,6 @@ macro_rules! check_refresh_ixs {
                     ),
                 ],
                 &$ctx.accounts.obligation.to_account_info().key(),
-                &[$mode_one, $mode_two],
             )?;
         }
     }};

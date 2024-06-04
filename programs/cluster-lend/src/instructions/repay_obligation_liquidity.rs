@@ -8,13 +8,16 @@ use anchor_spl::token::{self, Token, TokenAccount};
 use crate::{
     check_refresh_ixs,
     lending_market::{lending_checks, lending_operations},
-    state::{obligation::Obligation, LendingMarket, Reserve},
+    state::{LendingAction, LendingMarket, Reserve},
     utils::token_transfer,
-    xmsg, LendingAction, ReserveFarmKind,
+    xmsg, Obligation,
 };
 
-pub fn process(ctx: Context<RepayObligationLiquidity>, liquidity_amount: u64) -> Result<()> {
-    check_refresh_ixs!(ctx, repay_reserve, ReserveFarmKind::Debt);
+pub fn process_repay_obligation_liquidity(
+    ctx: Context<RepayObligationLiquidityCtx>,
+    liquidity_amount: u64,
+) -> Result<()> {
+    check_refresh_ixs!(ctx, repay_reserve);
     lending_checks::repay_obligation_liquidity_checks(&ctx)?;
 
     let clock = Clock::get()?;
@@ -63,7 +66,7 @@ pub fn process(ctx: Context<RepayObligationLiquidity>, liquidity_amount: u64) ->
 }
 
 #[derive(Accounts)]
-pub struct RepayObligationLiquidity<'info> {
+pub struct RepayObligationLiquidityCtx<'info> {
     pub owner: Signer<'info>,
 
     #[account(mut,
@@ -91,6 +94,7 @@ pub struct RepayObligationLiquidity<'info> {
 
     pub token_program: Program<'info, Token>,
 
+    /// CHECK: instruction_sysvar account
     #[account(address = SysInstructions::id())]
     pub instruction_sysvar_account: AccountInfo<'info>,
 }

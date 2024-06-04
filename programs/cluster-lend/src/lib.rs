@@ -9,6 +9,7 @@ pub mod utils;
 use anchor_lang::prelude::*;
 use constants::VALUE_BYTE_MAX_ARRAY_LEN_MARKET_UPDATE;
 use instructions::*;
+pub use state::*;
 use utils::constraints::emergency_mode_disabled;
 
 declare_id!("FtQFCy8pGnywDh1r2wZJWH8e5KHrkJvDzjTGv3LAAWmj");
@@ -38,18 +39,90 @@ pub mod cluster_lend {
         process_update_market_owner(ctx)
     }
 
+    // Reserve instructions
     pub fn initialize_reserve<'info>(
         ctx: Context<'_, '_, '_, 'info, InitializeReserveCtx<'info>>,
     ) -> Result<()> {
         process_initialize_reserve(ctx)
     }
 
-    // User instructions
+    #[access_control(emergency_mode_disabled(&ctx.accounts.lending_market))]
+    pub fn refresh_reserve(ctx: Context<RefreshReserveCtx>) -> Result<()> {
+        process_refresh_reserve(ctx)
+    }
+
     #[access_control(emergency_mode_disabled(&ctx.accounts.lending_market))]
     pub fn deposit_reserve_liquidity(
         ctx: Context<DepositReserveLiquidityCtx>,
         liquidity_amount: u64,
     ) -> Result<()> {
         process_deposit_reserve_liquidity(ctx, liquidity_amount)
+    }
+
+    #[access_control(emergency_mode_disabled(&ctx.accounts.lending_market))]
+    pub fn redeem_reserve_collateral(
+        ctx: Context<RedeemReserveCollateralCtx>,
+        collateral_amount: u64,
+    ) -> Result<()> {
+        process_redeem_reserve_collateral(ctx, collateral_amount)
+    }
+
+    // Obligation instructions
+    pub fn initialize_obligation(
+        ctx: Context<InitializeObligationCtx>,
+        args: InitObligationArgs,
+    ) -> Result<()> {
+        process_initialize_obligation(ctx, args)
+    }
+
+    pub fn refresh_obligation(ctx: Context<RefreshObligationCtx>) -> Result<()> {
+        process_refresh_obligation(ctx)
+    }
+
+    #[access_control(emergency_mode_disabled(&ctx.accounts.lending_market))]
+    pub fn deposit_obligation_collateral(
+        ctx: Context<DepositObligationCollateralCtx>,
+        collateral_amount: u64,
+    ) -> Result<()> {
+        process_deposit_obligation_collateral(ctx, collateral_amount)
+    }
+
+    #[access_control(emergency_mode_disabled(&ctx.accounts.lending_market))]
+    pub fn withdraw_obligation_collateral(
+        ctx: Context<WithdrawObligationCollateralCtx>,
+        collateral_amount: u64,
+    ) -> Result<()> {
+        process_withdraw_obligation_collateral(ctx, collateral_amount)
+    }
+
+    #[access_control(emergency_mode_disabled(&ctx.accounts.lending_market))]
+    pub fn borrow_obligation_liquidity<'info>(
+        ctx: Context<'_, '_, '_, 'info, BorrowObligationLiquidityCtx<'info>>,
+        liquidity_amount: u64,
+    ) -> Result<()> {
+        process_borrow_obligation_liquidity(ctx, liquidity_amount)
+    }
+
+    #[access_control(emergency_mode_disabled(&ctx.accounts.lending_market))]
+    pub fn repay_obligation_liquidity(
+        ctx: Context<RepayObligationLiquidityCtx>,
+        liquidity_amount: u64,
+    ) -> Result<()> {
+        process_repay_obligation_liquidity(ctx, liquidity_amount)
+    }
+
+    #[access_control(emergency_mode_disabled(&ctx.accounts.lending_market))]
+    pub fn liquidate_obligation(
+        ctx: Context<LiquidateObligationCtx>,
+        liquidity_amount: u64,
+        min_acceptable_received_collateral_amount: u64,
+        max_allowed_ltv_override_percent: u64,
+    ) -> Result<()> {
+        process_liquidate_obligation(
+            ctx,
+            liquidity_amount,
+            min_acceptable_received_collateral_amount,
+            max_allowed_ltv_override_percent,
+        )
     }
 }

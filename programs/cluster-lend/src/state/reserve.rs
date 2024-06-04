@@ -597,11 +597,10 @@ pub struct ReserveConfig {
 
     pub deposit_withdrawal_cap: WithdrawalCaps,
     pub debt_withdrawal_cap: WithdrawalCaps,
-
-    pub disable_usage_as_coll_outside_emode: u8,
+    pub padding_1: u8,
 
     #[derivative(Debug = "ignore")]
-    pub padding_1: [u8; 7],
+    pub padding_2: [u8; 7],
 
     pub reserved: [u64; 32],
 }

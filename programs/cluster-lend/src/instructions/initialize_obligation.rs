@@ -1,27 +1,66 @@
 use anchor_lang::prelude::*;
+use anchor_spl::token::Token;
 
-pub fn initialize_obligation(ctx: Context<Initialice>) -> Result<()> {
-    let market = &mut ctx.accounts.market.load_init()?;
+use crate::{
+    constants::OBLIGATION_SIZE,
+    errors::LendingError,
+    state::{
+        check_obligation_seeds, InitObligationArgs, LendingMarket, Obligation,
+        ObligationCollateral, ObligationLiquidity,
+    },
+};
 
-    market.set_initial_configuration(ctx.accounts.admin.key());
+pub fn process_initialize_obligation(
+    ctx: Context<InitializeObligationCtx>,
+    args: InitObligationArgs,
+) -> Result<()> {
+    let clock = &Clock::get()?;
 
-    // emit!(MarginfiGroupCreateEvent {
-    //     header: GroupEventHeader {
-    //         marginfi_group: ctx.accounts.marginfi_group.key(),
-    //         signer: Some(*ctx.accounts.admin.key)
-    //     },
-    // });
+    require!(args.id == 0, LendingError::InvalidObligationId);
+
+    check_obligation_seeds(
+        args.tag,
+        &ctx.accounts.seed1_account,
+        &ctx.accounts.seed2_account,
+    )
+    .unwrap();
+
+    let obligation = &mut ctx.accounts.obligation.load_init()?;
+
+    obligation.init(crate::state::obligation::InitObligationParams {
+        current_slot: clock.slot,
+        lending_market: ctx.accounts.lending_market.key(),
+        owner: ctx.accounts.obligation_owner.key(),
+        deposits: [ObligationCollateral::default(); 8],
+        borrows: [ObligationLiquidity::default(); 5],
+        tag: args.tag as u64,
+    });
 
     Ok(())
 }
 
 #[derive(Accounts)]
-pub struct UpdateMarketCtx<'info> {
-    #[account(mut)]
-    pub market: AccountLoader<'info, LendingMarket>,
+#[instruction(args: InitObligationArgs)]
+pub struct InitializeObligationCtx<'info> {
+    pub obligation_owner: Signer<'info>,
 
     #[account(mut)]
-    pub admin: Signer<'info>,
+    pub fee_payer: Signer<'info>,
 
+    #[account(init,
+        seeds = [&[args.tag], &[args.id], obligation_owner.key().as_ref(), lending_market.key().as_ref(), seed1_account.key().as_ref(), seed2_account.key().as_ref()],
+        bump,
+        payer = fee_payer,
+        space = OBLIGATION_SIZE + 8,
+    )]
+    pub obligation: AccountLoader<'info, Obligation>,
+
+    pub lending_market: AccountLoader<'info, LendingMarket>,
+
+    pub seed1_account: AccountInfo<'info>,
+    pub seed2_account: AccountInfo<'info>,
+
+    pub rent: Sysvar<'info, Rent>,
+    pub token_program: Program<'info, Token>,
     pub system_program: Program<'info, System>,
 }

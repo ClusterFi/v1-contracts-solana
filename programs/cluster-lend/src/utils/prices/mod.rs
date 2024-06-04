@@ -1,5 +1,4 @@
 pub mod checks;
-pub mod macros;
 pub mod pyth;
 pub mod types;
 pub mod utils;

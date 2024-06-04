@@ -6,40 +6,34 @@ use anchor_lang::{
 use anchor_spl::token::{self, Mint, Token, TokenAccount};
 
 use crate::{
-    errors::LendingError,
     gen_signer_seeds,
     lending_market::{
-        deposit_reserve_liquidity, lending_checks,
-        post_transfer_vault_balance_liquidity_reserve_checks, refresh_reserve,
+        post_transfer_vault_balance_liquidity_reserve_checks, redeem_reserve_collateral,
+        redeem_reserve_collateral_checks, refresh_reserve,
     },
-    state::{LendingAction, LendingMarket, Reserve},
+    state::{LendingAction, LendingMarket, RedeemReserveCollateralAccounts, Reserve},
     utils::{seeds, token_transfer},
-    DepositReserveLiquidityAccounts,
 };
 
-pub fn process_deposit_reserve_liquidity(
-    ctx: Context<DepositReserveLiquidityCtx>,
-    liquidity_amount: u64,
+pub fn process_redeem_reserve_collateral(
+    ctx: Context<RedeemReserveCollateralCtx>,
+    collateral_amount: u64,
 ) -> Result<()> {
-    require!(liquidity_amount != 0, LendingError::InvalidAmount);
-
-    lending_checks::deposit_reserve_liquidity_checks(&DepositReserveLiquidityAccounts {
+    redeem_reserve_collateral_checks(&RedeemReserveCollateralAccounts {
+        user_source_collateral: ctx.accounts.user_source_collateral.clone(),
+        user_destination_liquidity: ctx.accounts.user_destination_liquidity.clone(),
+        reserve: ctx.accounts.reserve.clone(),
+        reserve_collateral_mint: ctx.accounts.reserve_collateral_mint.clone(),
+        reserve_liquidity_supply: ctx.accounts.reserve_liquidity_supply.clone(),
         lending_market: ctx.accounts.lending_market.clone(),
         lending_market_authority: ctx.accounts.lending_market_authority.clone(),
-        reserve: ctx.accounts.reserve.clone(),
-        reserve_liquidity_supply: ctx.accounts.reserve_liquidity_supply.clone(),
-        reserve_collateral_mint: ctx.accounts.reserve_collateral_mint.clone(),
         owner: ctx.accounts.owner.clone(),
-        user_source_liquidity: ctx.accounts.user_source_liquidity.clone(),
-        user_destination_collateral: ctx.accounts.user_destination_collateral.clone(),
         token_program: ctx.accounts.token_program.clone(),
     })?;
 
     let reserve = &mut ctx.accounts.reserve.load_mut()?;
     let lending_market = &ctx.accounts.lending_market.load()?;
-    let clock = &Clock::get()?;
-
-    refresh_reserve(reserve, &clock, None)?;
+    let clock = Clock::get()?;
 
     let lending_market_key = ctx.accounts.lending_market.key();
     let authority_signer_seeds =
@@ -48,25 +42,27 @@ pub fn process_deposit_reserve_liquidity(
     let initial_reserve_token_balance =
         token::accessor::amount(&ctx.accounts.reserve_liquidity_supply.to_account_info())?;
     let initial_reserve_available_liquidity = reserve.liquidity.available_amount;
-    let collateral_amount = deposit_reserve_liquidity(reserve, &clock, liquidity_amount)?;
+
+    refresh_reserve(reserve, &clock, None)?;
+    let withdraw_liquidity_amount =
+        redeem_reserve_collateral(reserve, collateral_amount, &clock, true)?;
 
     msg!(
-        "pnl: Depositing in reserve {:?} liquidity {}",
-        ctx.accounts.reserve.key(),
-        liquidity_amount
+        "pnl: Redeeming reserve collateral {}",
+        withdraw_liquidity_amount
     );
 
-    token_transfer::deposit_reserve_liquidity_transfer(
-        ctx.accounts.user_source_liquidity.to_account_info(),
-        ctx.accounts.reserve_liquidity_supply.to_account_info(),
-        ctx.accounts.owner.to_account_info(),
+    token_transfer::redeem_reserve_collateral_transfer(
         ctx.accounts.token_program.to_account_info(),
         ctx.accounts.reserve_collateral_mint.to_account_info(),
-        ctx.accounts.user_destination_collateral.to_account_info(),
+        ctx.accounts.user_source_collateral.to_account_info(),
+        ctx.accounts.owner.to_account_info(),
+        ctx.accounts.reserve_liquidity_supply.to_account_info(),
+        ctx.accounts.user_destination_liquidity.to_account_info(),
         ctx.accounts.lending_market_authority.clone(),
         authority_signer_seeds,
-        liquidity_amount,
         collateral_amount,
+        withdraw_liquidity_amount,
     )?;
 
     post_transfer_vault_balance_liquidity_reserve_checks(
@@ -74,22 +70,22 @@ pub fn process_deposit_reserve_liquidity(
         reserve.liquidity.available_amount,
         initial_reserve_token_balance,
         initial_reserve_available_liquidity,
-        LendingAction::Additive(liquidity_amount),
+        LendingAction::Subtractive(withdraw_liquidity_amount),
     )?;
 
     Ok(())
 }
 
 #[derive(Accounts)]
-pub struct DepositReserveLiquidityCtx<'info> {
+pub struct RedeemReserveCollateralCtx<'info> {
     pub owner: Signer<'info>,
+
+    pub lending_market: AccountLoader<'info, LendingMarket>,
 
     #[account(mut,
         has_one = lending_market
     )]
     pub reserve: AccountLoader<'info, Reserve>,
-
-    pub lending_market: AccountLoader<'info, LendingMarket>,
 
     /// CHECK: market authority PDA
     #[account(
@@ -98,20 +94,23 @@ pub struct DepositReserveLiquidityCtx<'info> {
     )]
     pub lending_market_authority: AccountInfo<'info>,
 
-    #[account(mut, address = reserve.load()?.liquidity.supply_vault)]
+    #[account(mut,
+        address = reserve.load()?.collateral.mint_pubkey
+    )]
+    pub reserve_collateral_mint: Box<Account<'info, Mint>>,
+    #[account(mut,
+        address = reserve.load()?.liquidity.supply_vault
+    )]
     pub reserve_liquidity_supply: Box<Account<'info, TokenAccount>>,
 
-    #[account(mut, address = reserve.load()?.collateral.mint_pubkey)]
-    pub reserve_collateral_mint: Box<Account<'info, Mint>>,
-
     #[account(mut,
-        token::mint = reserve_liquidity_supply.mint
+        token::mint = reserve_collateral_mint
     )]
-    pub user_source_liquidity: Box<Account<'info, TokenAccount>>,
+    pub user_source_collateral: Box<Account<'info, TokenAccount>>,
     #[account(mut,
-        token::mint = reserve_collateral_mint.key()
+        token::mint = reserve.load()?.liquidity.mint_pubkey
     )]
-    pub user_destination_collateral: Box<Account<'info, TokenAccount>>,
+    pub user_destination_liquidity: Box<Account<'info, TokenAccount>>,
 
     pub token_program: Program<'info, Token>,
 

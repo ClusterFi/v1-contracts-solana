@@ -50,7 +50,6 @@ pub struct RefreshObligationDepositsResult {
     pub allowed_borrow_value_f: Fraction,
     pub unhealthy_borrow_value_f: Fraction,
     pub prices_state: PriceStatusFlags,
-    pub borrowing_disabled: bool,
 }
 
 pub struct RefreshObligationBorrowsResult {
