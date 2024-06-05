@@ -12,58 +12,11 @@ use crate::{
 };
 use crate::{
     BorrowObligationLiquidityCtx, DepositObligationCollateralAccounts,
-    DepositReserveLiquidityAccounts, LiquidateObligationCtx, RepayObligationLiquidityCtx,
-    WithdrawObligationCollateralAccounts,
+    DepositReserveLiquidityAccounts, FlashBorrowReserveCtx, FlashRepayReserveCtx,
+    LiquidateObligationCtx, RepayObligationLiquidityCtx, WithdrawObligationCollateralAccounts,
 };
 use anchor_lang::solana_program::clock::Slot;
 use anchor_lang::{prelude::*, solana_program::clock::UnixTimestamp};
-
-/*
-
-pub fn flash_borrow_reserve_liquidity_checks(
-    ctx: &Context<FlashBorrowReserveLiquidity>,
-) -> Result<()> {
-    let reserve = ctx.accounts.reserve.load()?;
-
-    if reserve.liquidity.supply_vault == ctx.accounts.user_destination_liquidity.key() {
-        msg!(
-            "Borrow reserve liquidity supply cannot be used as the destination liquidity provided"
-        );
-        return err!(LendingError::InvalidAccountInput);
-    }
-
-    if reserve.version != PROGRAM_VERSION as u64 {
-        msg!("Reserve version does not match the program version");
-        return err!(LendingError::ReserveDeprecated);
-    }
-
-    if reserve.config.status() == ReserveStatus::Obsolete {
-        msg!("Reserve is obsolete");
-        return err!(LendingError::ReserveObsolete);
-    }
-
-    if reserve.config.fees.flash_loan_fee_sf == u64::MAX {
-        msg!("Flash loans are disabled for this reserve");
-        return err!(LendingError::FlashLoansDisabled);
-    }
-
-    Ok(())
-}
-
-pub fn flash_repay_reserve_liquidity_checks(
-    ctx: &Context<FlashRepayReserveLiquidity>,
-) -> Result<()> {
-    let reserve = ctx.accounts.reserve.load()?;
-
-    if reserve.liquidity.supply_vault == ctx.accounts.user_source_liquidity.key() {
-        msg!("Reserve liquidity supply cannot be used as the source liquidity provided");
-        return err!(LendingError::InvalidAccountInput);
-    }
-
-    Ok(())
-}
-
-*/
 
 pub fn post_transfer_vault_balance_liquidity_reserve_checks(
     final_reserve_vault_balance: u64,
@@ -294,4 +247,43 @@ pub fn initial_liquidation_reserve_liquidity_available_amount(
     let withdraw_reserve_liquidity = withdraw_reserve.liquidity.available_amount;
 
     (repay_reserve_liquidity, withdraw_reserve_liquidity)
+}
+
+pub fn flash_borrow_reserve_liquidity_checks(ctx: &Context<FlashBorrowReserveCtx>) -> Result<()> {
+    let reserve = ctx.accounts.reserve.load()?;
+
+    if reserve.liquidity.supply_vault == ctx.accounts.user_destination_liquidity.key() {
+        msg!(
+            "Borrow reserve liquidity supply cannot be used as the destination liquidity provided"
+        );
+        return err!(LendingError::InvalidAccountInput);
+    }
+
+    if reserve.version != PROGRAM_VERSION as u64 {
+        msg!("Reserve version does not match the program version");
+        return err!(LendingError::ReserveDeprecated);
+    }
+
+    if reserve.config.status() == ReserveStatus::Obsolete {
+        msg!("Reserve is obsolete");
+        return err!(LendingError::ReserveObsolete);
+    }
+
+    if reserve.config.fees.flash_loan_fee_sf == u64::MAX {
+        msg!("Flash loans are disabled for this reserve");
+        return err!(LendingError::FlashLoansDisabled);
+    }
+
+    Ok(())
+}
+
+pub fn flash_repay_reserve_liquidity_checks(ctx: &Context<FlashRepayReserveCtx>) -> Result<()> {
+    let reserve = ctx.accounts.reserve.load()?;
+
+    if reserve.liquidity.supply_vault == ctx.accounts.user_source_liquidity.key() {
+        msg!("Reserve liquidity supply cannot be used as the source liquidity provided");
+        return err!(LendingError::InvalidAccountInput);
+    }
+
+    Ok(())
 }

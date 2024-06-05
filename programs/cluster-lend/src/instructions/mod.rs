@@ -1,6 +1,8 @@
 mod borrow_obligation_liquidity;
 mod deposit_obligation_collateral;
 mod deposit_reserve_liquidity;
+mod flash_borrow_reserve;
+mod flash_repay_reserve;
 mod initialize_market;
 mod initialize_obligation;
 mod initialize_reserve;
@@ -16,6 +18,8 @@ mod withdraw_obligation_collateral;
 pub use borrow_obligation_liquidity::*;
 pub use deposit_obligation_collateral::*;
 pub use deposit_reserve_liquidity::*;
+pub use flash_borrow_reserve::*;
+pub use flash_repay_reserve::*;
 pub use initialize_market::*;
 pub use initialize_obligation::*;
 pub use initialize_reserve::*;

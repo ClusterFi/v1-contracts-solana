@@ -125,4 +125,22 @@ pub mod cluster_lend {
             max_allowed_ltv_override_percent,
         )
     }
+
+    // Flash Loan
+    #[access_control(emergency_mode_disabled(&ctx.accounts.lending_market))]
+    pub fn flash_repay_reserve_liquidity(
+        ctx: Context<FlashRepayReserveCtx>,
+        liquidity_amount: u64,
+        borrow_instruction_index: u8,
+    ) -> Result<()> {
+        process_flash_repay_reserve(ctx, liquidity_amount, borrow_instruction_index)
+    }
+
+    #[access_control(emergency_mode_disabled(&ctx.accounts.lending_market))]
+    pub fn flash_borrow_reserve_liquidity(
+        ctx: Context<FlashBorrowReserveCtx>,
+        liquidity_amount: u64,
+    ) -> Result<()> {
+        process_flash_borrow_reserve(ctx, liquidity_amount)
+    }
 }

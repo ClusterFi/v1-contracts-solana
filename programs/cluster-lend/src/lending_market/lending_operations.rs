@@ -894,6 +894,42 @@ pub(crate) fn post_liquidate_redeem(
     }
 }
 
+pub fn flash_borrow_reserve_liquidity(reserve: &mut Reserve, liquidity_amount: u64) -> Result<()> {
+    if reserve.config.fees.flash_loan_fee_sf == u64::MAX {
+        msg!("Flash loans are disabled for this reserve");
+        return err!(LendingError::FlashLoansDisabled);
+    }
+
+    let liquidity_amount_f = Fraction::from(liquidity_amount);
+
+    reserve.liquidity.borrow(liquidity_amount_f)?;
+    reserve.last_update.mark_stale();
+
+    Ok(())
+}
+
+pub fn flash_repay_reserve_liquidity<'info>(
+    reserve: &mut Reserve,
+    liquidity_amount: u64,
+    slot: Slot,
+) -> Result<(u64, u64)> {
+    let flash_loan_amount = liquidity_amount;
+
+    let flash_loan_amount_f = Fraction::from(flash_loan_amount);
+    let protocol_fee = reserve
+        .config
+        .fees
+        .calculate_flash_loan_fees(flash_loan_amount_f)?;
+
+    reserve
+        .liquidity
+        .repay(flash_loan_amount, flash_loan_amount_f)?;
+    refresh_reserve_limit_timestamps(reserve, slot)?;
+    reserve.last_update.mark_stale();
+
+    Ok((flash_loan_amount, protocol_fee))
+}
+
 // Price utilities
 pub fn is_saved_price_age_valid(reserve: &Reserve, current_ts: UnixTimestamp) -> bool {
     let current_ts: u64 = current_ts.try_into().expect("Negative timestamp");
