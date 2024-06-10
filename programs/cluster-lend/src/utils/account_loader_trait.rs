@@ -7,10 +7,11 @@ use std::{
 };
 
 use anchor_lang::{
-    error::ErrorCode, prelude::AccountLoader, Accounts, Key, Owner, Result, ToAccountInfos,
-    ToAccountMetas, ZeroCopy,
+    error::ErrorCode,
+    prelude::AccountLoader,
+    solana_program::{account_info::AccountInfo, instruction::AccountMeta, pubkey::Pubkey},
+    Accounts, Key, Owner, Result, ToAccountInfos, ToAccountMetas, ZeroCopy,
 };
-use solana_program::{account_info::AccountInfo, instruction::AccountMeta, pubkey::Pubkey};
 
 pub trait AnyAccountLoader<'info, T> {
     fn get_mut(&self) -> Result<RefMut<T>>;

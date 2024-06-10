@@ -1,5 +1,4 @@
 use std::{
-    cell::RefMut,
     cmp::min,
     ops::{Add, Div, Mul},
 };
@@ -953,6 +952,27 @@ pub fn is_price_refresh_needed(
         price_max_age * price_refresh_trigger_to_max_age_pct / 100;
 
     current_ts.saturating_sub(price_last_updated_ts) >= price_refresh_trigger_to_max_age_secs
+}
+
+pub fn redeem_fees(reserve: &mut Reserve, slot: Slot) -> Result<u64> {
+    if reserve.last_update.is_stale(slot, PriceStatusFlags::NONE)? {
+        msg!(
+            "reserve is stale and must be refreshed in the current slot, price status: {:08b}",
+            reserve.last_update.get_price_status().0
+        );
+        return err!(LendingError::ReserveStale);
+    }
+
+    let withdraw_amount = reserve.calculate_redeem_fees()?;
+
+    if withdraw_amount == 0 {
+        return err!(LendingError::InsufficientProtocolFeesToRedeem);
+    }
+
+    reserve.liquidity.redeem_fees(withdraw_amount)?;
+    reserve.last_update.mark_stale();
+
+    Ok(withdraw_amount)
 }
 
 pub mod utils {

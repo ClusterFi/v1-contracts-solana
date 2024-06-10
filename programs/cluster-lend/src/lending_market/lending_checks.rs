@@ -1,22 +1,12 @@
 use crate::constants::PROGRAM_VERSION;
-use crate::state::{
-    CalculateBorrowResult, LendingAction, Obligation, RedeemReserveCollateralAccounts,
-    ReserveStatus,
-};
-use crate::utils::fraction::Fraction;
-use crate::utils::BigFraction;
-use crate::{
-    errors::LendingError,
-    state::{LendingMarket, PriceStatusFlags, Reserve},
-    utils::GetPriceResult,
-};
+use crate::state::{LendingAction, RedeemReserveCollateralAccounts, ReserveStatus};
+use crate::{errors::LendingError, state::Reserve};
 use crate::{
     BorrowObligationLiquidityCtx, DepositObligationCollateralAccounts,
     DepositReserveLiquidityAccounts, FlashBorrowReserveCtx, FlashRepayReserveCtx,
     LiquidateObligationCtx, RepayObligationLiquidityCtx, WithdrawObligationCollateralAccounts,
 };
-use anchor_lang::solana_program::clock::Slot;
-use anchor_lang::{prelude::*, solana_program::clock::UnixTimestamp};
+use anchor_lang::prelude::*;
 
 pub fn post_transfer_vault_balance_liquidity_reserve_checks(
     final_reserve_vault_balance: u64,

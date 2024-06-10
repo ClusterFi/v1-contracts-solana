@@ -1,11 +1,10 @@
 use anchor_lang::prelude::*;
 
 use crate::{
-    constants::PROGRAM_VERSION,
     errors::LendingError,
     lending_market::lending_operations,
     state::{LendingMarket, Obligation, Reserve},
-    utils::{constraints, get_price, FatAccountLoader},
+    utils::FatAccountLoader,
 };
 
 pub fn process_refresh_obligation(ctx: Context<RefreshObligationCtx>) -> Result<()> {

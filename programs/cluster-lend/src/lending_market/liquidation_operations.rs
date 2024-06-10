@@ -1,7 +1,6 @@
 use std::cmp::{max, min, Ordering};
 
-use anchor_lang::{err, prelude::msg, Result};
-use solana_program::clock::Slot;
+use anchor_lang::{err, prelude::msg, solana_program::clock::Slot, Result};
 
 use crate::{
     constants::{DUST_LAMPORT_THRESHOLD, MIN_AUTODELEVERAGE_BONUS_BPS},
@@ -138,7 +137,6 @@ pub fn get_liquidation_params(
     max_allowed_ltv_override_pct_opt: Option<u64>,
 ) -> Result<LiquidationParams> {
     if let Some(params) = check_liquidate_obligation(
-        lending_market,
         collateral_reserve,
         debt_reserve,
         obligation,
@@ -171,7 +169,6 @@ pub fn get_liquidation_params(
 }
 
 pub fn check_liquidate_obligation(
-    lending_market: &LendingMarket,
     collateral_reserve: &Reserve,
     debt_reserve: &Reserve,
     obligation: &Obligation,

@@ -1,5 +1,4 @@
-use anchor_lang::{prelude::*, Discriminator};
-use solana_program::log::sol_log_compute_units;
+use anchor_lang::{prelude::*, solana_program::log::sol_log_compute_units, Discriminator};
 
 use crate::{
     errors::LendingError,
@@ -106,7 +105,7 @@ pub fn check_refresh(
     };
 
     let mut required_pre_ixs = Vec::with_capacity(refresh_reserve_ixs + 1 + refresh_reserve_ixs);
-    let mut required_post_ixs = Vec::with_capacity(refresh_reserve_ixs);
+    let required_post_ixs = Vec::with_capacity(refresh_reserve_ixs);
     for reserve in reserves.iter().take(refresh_reserve_ixs) {
         required_pre_ixs.push(RequiredIx {
             kind: RequiredIxType::RefreshReserve,

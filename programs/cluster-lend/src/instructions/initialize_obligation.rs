@@ -57,7 +57,10 @@ pub struct InitializeObligationCtx<'info> {
 
     pub lending_market: AccountLoader<'info, LendingMarket>,
 
+    /// CHECK: seed1 account for obligation
     pub seed1_account: AccountInfo<'info>,
+
+    /// CHECK: seed2 account for obligation
     pub seed2_account: AccountInfo<'info>,
 
     pub rent: Sysvar<'info, Rent>,

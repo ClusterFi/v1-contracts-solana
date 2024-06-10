@@ -1,6 +1,5 @@
 pub mod constants;
 pub mod errors;
-pub mod events;
 pub mod instructions;
 pub mod lending_market;
 pub mod state;
@@ -37,6 +36,17 @@ pub mod cluster_lend {
 
     pub fn update_market_owner(ctx: Context<UpdateMarketOwnerCtx>) -> Result<()> {
         process_update_market_owner(ctx)
+    }
+
+    pub fn redeem_fees(ctx: Context<RedeemFeesCtx>) -> Result<()> {
+        process_redeem_fees(ctx)
+    }
+
+    pub fn withdraw_protocol_fees(
+        ctx: Context<WithdrawProtocolFeesCtx>,
+        amount: u64,
+    ) -> Result<()> {
+        process_withdraw_protocol_fees(ctx, amount)
     }
 
     // Reserve instructions

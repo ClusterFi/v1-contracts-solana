@@ -2,7 +2,6 @@ use anchor_lang::{
     prelude::{AccountLoader, Signer},
     AccountsClose, Owner, Result, ToAccountInfo, ZeroCopy,
 };
-use solana_program::msg;
 
 pub fn close_account_loader<'info, T: ZeroCopy + Owner>(
     close_account: bool,
@@ -10,7 +9,6 @@ pub fn close_account_loader<'info, T: ZeroCopy + Owner>(
     account_to_be_closed: &AccountLoader<'info, T>,
 ) -> Result<()> {
     if close_account {
-        msg!("Closing account");
         account_to_be_closed.close(owner.to_account_info().clone())?;
     }
 
