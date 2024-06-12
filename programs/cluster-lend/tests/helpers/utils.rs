@@ -1,4 +1,4 @@
-use solana_sdk::signature::Keypair;
+use solana_sdk::{pubkey::Pubkey, signature::Keypair};
 
 pub fn ui_to_native(ui_amount: f64, decimals: u8) -> u64 {
     (ui_amount * (10u64.pow(decimals as u32) as f64)) as u64

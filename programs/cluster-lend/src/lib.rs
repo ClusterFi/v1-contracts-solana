@@ -50,9 +50,7 @@ pub mod cluster_lend {
     }
 
     // Reserve instructions
-    pub fn initialize_reserve<'info>(
-        ctx: Context<'_, '_, '_, 'info, InitializeReserveCtx<'info>>,
-    ) -> Result<()> {
+    pub fn initialize_reserve(ctx: Context<InitializeReserveCtx>) -> Result<()> {
         process_initialize_reserve(ctx)
     }
 
@@ -106,8 +104,8 @@ pub mod cluster_lend {
     }
 
     #[access_control(emergency_mode_disabled(&ctx.accounts.lending_market))]
-    pub fn borrow_obligation_liquidity<'info>(
-        ctx: Context<'_, '_, '_, 'info, BorrowObligationLiquidityCtx<'info>>,
+    pub fn borrow_obligation_liquidity(
+        ctx: Context<BorrowObligationLiquidityCtx>,
         liquidity_amount: u64,
     ) -> Result<()> {
         process_borrow_obligation_liquidity(ctx, liquidity_amount)

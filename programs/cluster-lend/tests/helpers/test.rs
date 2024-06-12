@@ -2,10 +2,12 @@ use std::{cell::RefCell, rc::Rc};
 
 use anchor_lang::prelude::*;
 
-use solana_program_test::{ProgramTest, ProgramTestContext};
+use bincode::deserialize;
+use solana_program::{hash::Hash, sysvar};
+use solana_program_test::*;
 use solana_sdk::{signature::Keypair, signer::Signer};
 
-use crate::{spl::MintFixture, utils::clone_keypair};
+use crate::{lending_market::LendingMarketFixture, spl::MintFixture, utils::clone_keypair};
 
 pub const USDC_MINT_DECIMALS: u8 = 6;
 pub const SOL_MINT_DECIMALS: u8 = 9;
@@ -24,7 +26,19 @@ pub struct TestFixture {
 
 impl TestFixture {
     pub async fn new() -> TestFixture {
-        let mut program = ProgramTest::new("cluster_lend", cluster_lend::id(), None);
+        pub fn fixed_entry(
+            program_id: &Pubkey,
+            accounts: &[anchor_lang::prelude::AccountInfo],
+            data: &[u8],
+        ) -> anchor_lang::solana_program::entrypoint::ProgramResult {
+            let extended_lifetime_accs = unsafe {
+                core::mem::transmute::<_, &[anchor_lang::prelude::AccountInfo<'_>]>(accounts)
+            };
+            cluster_lend::entry(program_id, extended_lifetime_accs, data)
+        }
+
+        let mut program =
+            ProgramTest::new("cluster_lend", cluster_lend::id(), processor!(fixed_entry));
         let context = Rc::new(RefCell::new(program.start_with_context().await));
 
         let usdc_keypair = Keypair::new();
@@ -50,6 +64,22 @@ impl TestFixture {
             sol_mint: sol_mint_f,
             authority,
         }
+    }
+
+    pub async fn load_and_deserialize<T: anchor_lang::AccountDeserialize>(
+        &self,
+        address: &Pubkey,
+    ) -> T {
+        let ai = self
+            .context
+            .borrow_mut()
+            .banks_client
+            .get_account(*address)
+            .await
+            .unwrap()
+            .unwrap();
+
+        T::try_deserialize(&mut ai.data.as_slice()).unwrap()
     }
 
     pub fn payer(&self) -> Pubkey {

@@ -1014,6 +1014,7 @@ dependencies = [
  "anchor-spl",
  "anyhow",
  "arrayref",
+ "bincode",
  "bitflags 2.5.0",
  "bytemuck",
  "derivative",

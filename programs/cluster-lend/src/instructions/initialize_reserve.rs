@@ -10,9 +10,7 @@ use crate::{
     utils::seeds,
 };
 
-pub fn process_initialize_reserve<'info>(
-    ctx: Context<'_, '_, '_, 'info, InitializeReserveCtx<'info>>,
-) -> Result<()> {
+pub fn process_initialize_reserve(ctx: Context<InitializeReserveCtx>) -> Result<()> {
     let clock = &Clock::get()?;
     let reserve = &mut ctx.accounts.reserve.load_init()?;
 

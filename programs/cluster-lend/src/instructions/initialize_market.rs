@@ -25,7 +25,11 @@ pub struct InitializeMarketCtx<'info> {
     #[account(mut)]
     pub owner: Signer<'info>,
 
-    #[account(zero)]
+    #[account(
+        init,
+        payer = owner,
+        space = 8 + std::mem::size_of::<LendingMarket>()
+    )]
     pub lending_market: AccountLoader<'info, LendingMarket>,
 
     /// CHECK: market authority PDA

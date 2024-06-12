@@ -1,47 +1,60 @@
 #[cfg(test)]
 mod helpers;
-use anchor_lang::prelude::Clock;
-use anchor_lang::{AccountDeserialize, InstructionData, ToAccountMetas};
+use std::rc::Rc;
 
-use solana_program::{instruction::Instruction, system_program};
-use solana_program::{pubkey, pubkey::Pubkey};
+use cluster_lend::LendingMarket;
+use lending_market::LendingMarketFixture;
 
 use solana_program_test::*;
 
 use helpers::*;
-use solana_sdk::{signature::Keypair, signer::Signer, transaction::Transaction};
-use test::TestFixture;
+use solana_sdk::{
+    clock::{self, Clock},
+    signature::Keypair,
+};
+use test::{TestFixture, SOL_QUOTE_CURRENCY, USDC_QUOTE_CURRENCY};
 
 #[tokio::test]
-async fn it_works() {
+async fn success_init_lending_market() {
     let test_f = TestFixture::new().await;
 
     let lending_market_key = Keypair::new();
-    let accounts = cluster_lend::accounts::InitializeMarketCtx {
-        owner: test_f.payer(),
-        lending_market: lending_market_key.pubkey(),
-        lending_market_authority: test_f.authority.pubkey(),
-        system_program: system_program::ID,
-    };
-    let init_marginfi_account_ix = Instruction {
-        program_id: cluster_lend::id(),
-        accounts: accounts.to_account_metas(Some(true)),
-        data: cluster_lend::instruction::InitializeMarket {}.data(),
-    };
+    let lending_market_f = LendingMarketFixture::new(
+        Rc::clone(&test_f.context),
+        USDC_QUOTE_CURRENCY,
+        &lending_market_key,
+    )
+    .await
+    .unwrap();
 
-    let tx = Transaction::new_signed_with_payer(
-        &[init_marginfi_account_ix],
-        Some(&test_f.payer()),
-        &[&test_f.payer_keypair()],
-        test_f.get_latest_blockhash().await,
-    );
+    // Fetch & deserialize lending_market account
+    let lending_market: LendingMarket = test_f.load_and_deserialize(&lending_market_f.key).await;
 
-    let res = test_f
-        .context
-        .borrow_mut()
-        .banks_client
-        .process_transaction(tx)
-        .await;
+    // Check properties
+    assert_eq!(lending_market.quote_currency, USDC_QUOTE_CURRENCY);
+    assert_eq!(lending_market.owner, test_f.payer());
+}
 
-    assert!(res.is_ok());
+#[tokio::test]
+async fn failure_init_lending_market_with_same_currency() {
+    let test_f = TestFixture::new().await;
+
+    let lending_market_key = Keypair::new();
+
+    let r = LendingMarketFixture::new(
+        Rc::clone(&test_f.context),
+        USDC_QUOTE_CURRENCY,
+        &lending_market_key,
+    )
+    .await;
+    assert!(r.is_ok());
+
+    // Try to init market with same key
+    let r = LendingMarketFixture::new(
+        Rc::clone(&test_f.context),
+        SOL_QUOTE_CURRENCY,
+        &lending_market_key,
+    )
+    .await;
+    assert!(r.is_err());
 }
