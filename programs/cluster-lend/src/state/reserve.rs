@@ -12,6 +12,7 @@ use anchor_lang::{
 use borsh::{BorshDeserialize, BorshSerialize};
 use derivative::Derivative;
 use num_enum::{IntoPrimitive, TryFromPrimitive};
+use strum::EnumString;
 
 use super::{LastUpdate, TokenInfo};
 use crate::{
@@ -762,4 +763,47 @@ pub fn approximate_compounded_interest(rate: Fraction, elapsed_slots: u64) -> Fr
     let third_term = (base_power_three * exp * exp_minus_one * exp_minus_two) / 6;
 
     Fraction::ONE + first_term + second_term + third_term
+}
+
+#[derive(
+    AnchorSerialize,
+    AnchorDeserialize,
+    TryFromPrimitive,
+    PartialEq,
+    Eq,
+    Clone,
+    Copy,
+    Debug,
+    EnumString,
+)]
+#[repr(u64)]
+pub enum UpdateConfigMode {
+    UpdateLoanToValuePct = 1,
+    UpdateMaxLiquidationBonusBps = 2,
+    UpdateLiquidationThresholdPct = 3,
+    UpdateProtocolLiquidationFee = 4,
+    UpdateProtocolTakeRate = 5,
+    UpdateFeesBorrowFee = 6,
+    UpdateFeesFlashLoanFee = 7,
+    UpdateFeesReferralFeeBps = 8,
+    UpdateDepositLimit = 9,
+    UpdateBorrowLimit = 10,
+    UpdateTokenInfoTwapDivergence = 14,
+    UpdateTokenInfoName = 17,
+    UpdateTokenInfoPriceMaxAge = 18,
+    UpdateTokenInfoTwapMaxAge = 19,
+    UpdatePythPrice = 21,
+    UpdateBorrowRateCurve = 24,
+    UpdateEntireReserveConfig = 25,
+    UpdateDebtWithdrawalCap = 26,
+    UpdateDepositWithdrawalCap = 27,
+    UpdateDebtWithdrawalCapCurrentTotal = 28,
+    UpdateDepositWithdrawalCapCurrentTotal = 29,
+    UpdateBadDebtLiquidationBonusBps = 30,
+    UpdateMinLiquidationBonusBps = 31,
+    DeleveragingMarginCallPeriod = 32,
+    UpdateBorrowFactor = 33,
+    UpdateAssetTier = 34,
+    DeleveragingThresholdSlotsPerBps = 36,
+    UpdateReserveStatus = 39,
 }

@@ -54,6 +54,14 @@ pub mod cluster_lend {
         process_initialize_reserve(ctx)
     }
 
+    pub fn update_reserve(
+        ctx: Context<UpdateReserveCtx>,
+        mode: u64,
+        value: [u8; 32],
+    ) -> Result<()> {
+        process_update_reserve(ctx, mode, value)
+    }
+
     #[access_control(emergency_mode_disabled(&ctx.accounts.lending_market))]
     pub fn refresh_reserve(ctx: Context<RefreshReserveCtx>) -> Result<()> {
         process_refresh_reserve(ctx)

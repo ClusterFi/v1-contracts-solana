@@ -54,7 +54,11 @@ pub struct InitializeReserveCtx<'info> {
     )]
     pub lending_market_authority: AccountInfo<'info>,
 
-    #[account(zero)]
+    #[account(
+        init,
+        payer = owner,
+        space = 8 + std::mem::size_of::<Reserve>()
+    )]
     pub reserve: AccountLoader<'info, Reserve>,
 
     pub reserve_liquidity_mint: Box<Account<'info, Mint>>,

@@ -14,6 +14,7 @@ mod refresh_reserve;
 mod repay_obligation_liquidity;
 mod update_market;
 mod update_market_owner;
+mod update_reserve;
 mod withdraw_obligation_collateral;
 mod withdraw_protocol_fees;
 
@@ -33,5 +34,6 @@ pub use refresh_reserve::*;
 pub use repay_obligation_liquidity::*;
 pub use update_market::*;
 pub use update_market_owner::*;
+pub use update_reserve::*;
 pub use withdraw_obligation_collateral::*;
 pub use withdraw_protocol_fees::*;

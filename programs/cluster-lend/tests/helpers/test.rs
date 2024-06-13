@@ -3,11 +3,16 @@ use std::{cell::RefCell, rc::Rc};
 use anchor_lang::prelude::*;
 
 use bincode::deserialize;
+use pyth_sdk_solana::state::SolanaPriceAccount;
 use solana_program::{hash::Hash, sysvar};
 use solana_program_test::*;
-use solana_sdk::{signature::Keypair, signer::Signer};
+use solana_sdk::{account::AccountSharedData, pubkey, signature::Keypair, signer::Signer};
 
-use crate::{lending_market::LendingMarketFixture, spl::MintFixture, utils::clone_keypair};
+use crate::{
+    lending_market::LendingMarketFixture,
+    spl::MintFixture,
+    utils::{clone_keypair, create_pyth_price_account},
+};
 
 pub const USDC_MINT_DECIMALS: u8 = 6;
 pub const SOL_MINT_DECIMALS: u8 = 9;
@@ -16,6 +21,12 @@ pub const USDC_QUOTE_CURRENCY: [u8; 32] =
     *b"USD\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0";
 pub const SOL_QUOTE_CURRENCY: [u8; 32] =
     *b"SOL\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0";
+
+pub const PYTH_USDC_FEED: Pubkey = pubkey!("PythUsdcPrice111111111111111111111111111111");
+pub const PYTH_SOL_FEED: Pubkey = pubkey!("PythSo1Price1111111111111111111111111111111");
+pub const PYTH_SOL_EQUIVALENT_FEED: Pubkey = pubkey!("PythSo1Equiva1entPrice111111111111111111111");
+pub const PYTH_MNDE_FEED: Pubkey = pubkey!("PythMndePrice111111111111111111111111111111");
+pub const FAKE_PYTH_USDC_FEED: Pubkey = pubkey!("FakePythUsdcPrice11111111111111111111111111");
 
 pub struct TestFixture {
     pub context: Rc<RefCell<ProgramTestContext>>,
@@ -39,12 +50,22 @@ impl TestFixture {
 
         let mut program =
             ProgramTest::new("cluster_lend", cluster_lend::id(), processor!(fixed_entry));
-        let context = Rc::new(RefCell::new(program.start_with_context().await));
 
         let usdc_keypair = Keypair::new();
         let sol_keypair = Keypair::new();
         let authority = Keypair::new();
 
+        program.add_account(
+            PYTH_USDC_FEED,
+            create_pyth_price_account(usdc_keypair.pubkey(), 1, USDC_MINT_DECIMALS.into(), None),
+        );
+
+        program.add_account(
+            PYTH_SOL_FEED,
+            create_pyth_price_account(usdc_keypair.pubkey(), 1, USDC_MINT_DECIMALS.into(), None),
+        );
+
+        let context = Rc::new(RefCell::new(program.start_with_context().await));
         let usdc_mint_f = MintFixture::new(
             Rc::clone(&context),
             Some(usdc_keypair),
@@ -88,6 +109,32 @@ impl TestFixture {
 
     pub fn payer_keypair(&self) -> Keypair {
         clone_keypair(&self.context.borrow().payer)
+    }
+
+    pub async fn set_pyth_oracle_timestamp(&self, address: Pubkey, timestamp: i64) {
+        let mut ctx = self.context.borrow_mut();
+
+        let mut account = ctx
+            .banks_client
+            .get_account(address)
+            .await
+            .unwrap()
+            .unwrap();
+
+        let data = account.data.as_mut_slice();
+        let mut data: SolanaPriceAccount =
+            *pyth_sdk_solana::state::load_price_account(data).unwrap();
+
+        data.timestamp = timestamp;
+        data.prev_timestamp = timestamp;
+
+        let bytes = bytemuck::bytes_of(&data);
+
+        let mut aso = AccountSharedData::from(account);
+
+        aso.set_data_from_slice(bytes);
+
+        ctx.set_account(&address, &aso);
     }
 
     pub fn set_time(&self, timestamp: i64) {

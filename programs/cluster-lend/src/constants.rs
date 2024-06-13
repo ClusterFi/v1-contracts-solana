@@ -1,4 +1,5 @@
 use anchor_lang::solana_program;
+use solana_program::pubkey;
 
 use crate::utils::fraction::{fraction, Fraction};
 
@@ -32,11 +33,10 @@ pub const MAX_OBLIGATION_RESERVES: u64 = 20;
 
 pub const CLOSE_TO_INSOLVENCY_RISKY_LTV: u8 = 95;
 
-pub const NULL_PUBKEY: solana_program::pubkey::Pubkey =
-    solana_program::pubkey::Pubkey::new_from_array([
-        11, 193, 238, 216, 208, 116, 241, 195, 55, 212, 76, 22, 75, 202, 40, 216, 76, 206, 27, 169,
-        138, 64, 177, 28, 19, 90, 156, 0, 0, 0, 0, 0,
-    ]);
+pub const NULL_PUBKEY: pubkey::Pubkey = solana_program::pubkey::Pubkey::new_from_array([
+    11, 193, 238, 216, 208, 116, 241, 195, 55, 212, 76, 22, 75, 202, 40, 216, 76, 206, 27, 169,
+    138, 64, 177, 28, 19, 90, 156, 0, 0, 0, 0, 0,
+]);
 
 pub const LENDING_MARKET_SIZE: usize = 4656;
 pub const RESERVE_SIZE: usize = 8616;

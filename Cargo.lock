@@ -1017,6 +1017,7 @@ dependencies = [
  "bincode",
  "bitflags 2.5.0",
  "bytemuck",
+ "cfg-if",
  "derivative",
  "fixed",
  "fixed-macro",

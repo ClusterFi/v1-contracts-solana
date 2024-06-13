@@ -1,6 +1,7 @@
 use std::convert::TryFrom;
 
 use anchor_lang::prelude::*;
+use anchor_lang::solana_program::pubkey;
 use pyth_sdk_solana::{state::SolanaPriceAccount, Price as PythPrice};
 
 use crate::errors::LendingError;
