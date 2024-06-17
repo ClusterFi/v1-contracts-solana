@@ -74,12 +74,12 @@ impl ReserveFixture {
         })
     }
 
-    pub async fn try_refresh_reserve(&self) -> Result<(), BanksClientError> {
+    pub async fn try_refresh_reserve(&self, pyth_oracle: Pubkey) -> Result<(), BanksClientError> {
         let mut ctx = self.ctx.borrow_mut();
         let accounts = cluster_lend::accounts::RefreshReserveCtx {
             reserve: self.key,
             lending_market: self.lending_market,
-            pyth_oracle: None,
+            pyth_oracle: Some(pyth_oracle),
         };
         let ix = Instruction {
             program_id: cluster_lend::id(),
@@ -134,6 +134,7 @@ impl ReserveFixture {
     ) -> Result<(), BanksClientError> {
         let mut value = [0; VALUE_BYTE_ARRAY_LEN_RESERVE];
         let data = borsh::BorshSerialize::try_to_vec(&config).unwrap();
+        value.copy_from_slice(data.as_slice());
 
         let mut ctx = self.ctx.borrow_mut();
         let accounts = cluster_lend::accounts::UpdateReserveCtx {

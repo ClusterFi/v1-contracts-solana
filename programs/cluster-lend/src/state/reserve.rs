@@ -16,7 +16,7 @@ use strum::EnumString;
 
 use super::{LastUpdate, TokenInfo};
 use crate::{
-    constants::{INITIAL_COLLATERAL_RATE, PROGRAM_VERSION, SLOTS_PER_YEAR},
+    constants::{INITIAL_COLLATERAL_RATE, PROGRAM_VERSION, RESERVE_CONFIG_SIZE, SLOTS_PER_YEAR},
     errors::{LendingError, LendingResult},
     state::{CalculateBorrowResult, CalculateRepayResult},
     utils::{borrow_rate_curve::BorrowRateCurve, BigFraction, Fraction, FractionExtra},
@@ -566,7 +566,7 @@ pub struct NewReserveCollateralParams {
     pub supply_vault: Pubkey,
 }
 
-// static_assertions::const_assert_eq!(RESERVE_CONFIG_SIZE, std::mem::size_of::<ReserveConfig>());0
+static_assertions::const_assert_eq!(RESERVE_CONFIG_SIZE, std::mem::size_of::<ReserveConfig>());
 static_assertions::const_assert_eq!(0, std::mem::size_of::<ReserveConfig>() % 8);
 #[derive(BorshDeserialize, BorshSerialize, PartialEq, Eq, Derivative, Default)]
 #[derivative(Debug)]

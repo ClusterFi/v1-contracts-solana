@@ -3,7 +3,11 @@ use std::{cell::RefCell, rc::Rc};
 use anchor_lang::prelude::*;
 
 use bincode::deserialize;
-use cluster_lend::{ReserveConfig, ReserveStatus};
+use cluster_lend::{
+    utils::{BorrowRateCurve, CurvePoint},
+    AssetTier, PythConfiguration, ReserveConfig, ReserveFees, ReserveStatus, TokenInfo,
+    WithdrawalCaps,
+};
 use pyth_sdk_solana::state::SolanaPriceAccount;
 use solana_program::{hash::Hash, sysvar};
 use solana_program_test::*;
@@ -30,9 +34,106 @@ pub const PYTH_MNDE_FEED: Pubkey = pubkey!("PythMndePrice11111111111111111111111
 pub const FAKE_PYTH_USDC_FEED: Pubkey = pubkey!("FakePythUsdcPrice11111111111111111111111111");
 
 pub const TEST_RESERVE_CONFIG: ReserveConfig = ReserveConfig {
-    status: ReserveStatus::Active.into(),
-    asset_tier: 0,
+    status: 0,     // Active
+    asset_tier: 0, // Regular
+    protocol_take_rate_pct: 0,
+    protocol_liquidation_fee_pct: 0,
+    loan_to_value_pct: 75,
+    liquidation_threshold_pct: 85,
+    min_liquidation_bonus_bps: 200,
+    max_liquidation_bonus_bps: 500,
+    bad_debt_liquidation_bonus_bps: 10,
 
+    deleveraging_margin_call_period_secs: 259200, // 3 days
+    deleveraging_threshold_slots_per_bps: 7200,   // 0.01% per hour
+    fees: ReserveFees {
+        borrow_fee_sf: 0,
+        flash_loan_fee_sf: 0,
+        padding: [0; 8],
+    },
+    borrow_rate_curve: BorrowRateCurve {
+        points: [
+            CurvePoint {
+                utilization_rate_bps: 0,
+                borrow_rate_bps: 1,
+            },
+            CurvePoint {
+                utilization_rate_bps: 100,
+                borrow_rate_bps: 100,
+            },
+            CurvePoint {
+                utilization_rate_bps: 10000,
+                borrow_rate_bps: 100000,
+            },
+            CurvePoint {
+                utilization_rate_bps: 10000,
+                borrow_rate_bps: 100000,
+            },
+            CurvePoint {
+                utilization_rate_bps: 10000,
+                borrow_rate_bps: 100000,
+            },
+            CurvePoint {
+                utilization_rate_bps: 10000,
+                borrow_rate_bps: 100000,
+            },
+            CurvePoint {
+                utilization_rate_bps: 10000,
+                borrow_rate_bps: 100000,
+            },
+            CurvePoint {
+                utilization_rate_bps: 10000,
+                borrow_rate_bps: 100000,
+            },
+            CurvePoint {
+                utilization_rate_bps: 10000,
+                borrow_rate_bps: 100000,
+            },
+            CurvePoint {
+                utilization_rate_bps: 10000,
+                borrow_rate_bps: 100000,
+            },
+            CurvePoint {
+                utilization_rate_bps: 10000,
+                borrow_rate_bps: 100000,
+            },
+        ],
+    },
+    borrow_factor_pct: 100,
+
+    deposit_limit: 10_000_000_000_000,
+    borrow_limit: 10_000_000_000_000,
+
+    token_info: TokenInfo {
+        name: [0; 32],
+
+        max_twap_divergence_bps: 0,
+        max_age_price_seconds: 1_000_000_000,
+        max_age_twap_seconds: 0,
+        pyth_configuration: PythConfiguration {
+            price: PYTH_SOL_FEED,
+        },
+
+        _padding: [0; 20],
+    },
+
+    deposit_withdrawal_cap: WithdrawalCaps {
+        config_capacity: 0,
+        current_total: 0,
+        last_interval_start_timestamp: 0,
+        config_interval_length_seconds: 0,
+    },
+    debt_withdrawal_cap: WithdrawalCaps {
+        config_capacity: 0,
+        current_total: 0,
+        last_interval_start_timestamp: 0,
+        config_interval_length_seconds: 0,
+    },
+
+    padding_0: [0; 4],
+    padding_1: 0,
+    padding_2: [0; 7],
+    reserved: [0; 32],
 };
 
 pub struct TestFixture {

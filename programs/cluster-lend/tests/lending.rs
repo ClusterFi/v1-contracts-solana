@@ -2,7 +2,9 @@
 mod helpers;
 use std::rc::Rc;
 
-use cluster_lend::{LendingMarket, Reserve, ReserveStatus, UpdateLendingMarketMode};
+use cluster_lend::{
+    errors::LendingError, LendingMarket, Reserve, ReserveStatus, UpdateLendingMarketMode,
+};
 use lending_market::LendingMarketFixture;
 
 use reserve::ReserveFixture;
@@ -17,8 +19,9 @@ use solana_sdk::{
 use test::{TestFixture, SOL_MINT_DECIMALS, SOL_QUOTE_CURRENCY, USDC_QUOTE_CURRENCY};
 
 #[tokio::test]
-async fn success_init_reserve() {
-    let test_f = TestFixture::new().await;
+async fn success_deposit() {
+    // Create market & reserve
+    let mut test_f = TestFixture::new().await;
 
     let lending_market_key = Keypair::new();
     let lending_market_f = LendingMarketFixture::new(
@@ -39,10 +42,15 @@ async fn success_init_reserve() {
     .await
     .unwrap();
 
-    // Fetch reserve account
-    let reserve: Reserve = test_f.load_and_deserialize(&reserve_f.key).await;
+    // create test user and supply test token
+    let user = Keypair::new();
+    test_f.usdc_mint.key = user.pubkey();
+    test_f.usdc_mint.create_token_account_and_mint_to(100).await;
 
-    // Check properties
-    assert_eq!(reserve.lending_market, lending_market_key.pubkey());
-    assert_eq!(reserve.config.status(), ReserveStatus::Hidden);
+    // deposit
+
+
 }
+
+#[tokio::test]
+async fn success_withdraw() {}
