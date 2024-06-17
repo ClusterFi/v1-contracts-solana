@@ -6,7 +6,7 @@ pub mod state;
 pub mod utils;
 
 use anchor_lang::prelude::*;
-use constants::VALUE_BYTE_MAX_ARRAY_LEN_MARKET_UPDATE;
+use constants::{VALUE_BYTE_ARRAY_LEN_RESERVE, VALUE_BYTE_MAX_ARRAY_LEN_MARKET_UPDATE};
 use instructions::*;
 pub use state::*;
 use utils::constraints::emergency_mode_disabled;
@@ -56,10 +56,17 @@ pub mod cluster_lend {
 
     pub fn update_reserve(
         ctx: Context<UpdateReserveCtx>,
+        value: [u8; VALUE_BYTE_ARRAY_LEN_RESERVE],
+    ) -> Result<()> {
+        process_update_reserve(ctx, 25, &value)
+    }
+
+    pub fn update_reserve_mode(
+        ctx: Context<UpdateReserveCtx>,
         mode: u64,
         value: [u8; 32],
     ) -> Result<()> {
-        process_update_reserve(ctx, mode, value)
+        process_update_reserve(ctx, mode, &value)
     }
 
     #[access_control(emergency_mode_disabled(&ctx.accounts.lending_market))]

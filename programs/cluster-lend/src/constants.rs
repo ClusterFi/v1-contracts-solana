@@ -3,6 +3,7 @@ use solana_program::pubkey;
 
 use crate::utils::fraction::{fraction, Fraction};
 
+pub const VALUE_BYTE_ARRAY_LEN_RESERVE: usize = RESERVE_CONFIG_SIZE;
 pub const VALUE_BYTE_MAX_ARRAY_LEN_MARKET_UPDATE: usize = 72;
 pub const VALUE_BYTE_ARRAY_LEN_SHORT_UPDATE: usize = 32;
 

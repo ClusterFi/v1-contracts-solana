@@ -3,6 +3,7 @@ use std::{cell::RefCell, rc::Rc};
 use anchor_lang::prelude::*;
 
 use bincode::deserialize;
+use cluster_lend::{ReserveConfig, ReserveStatus};
 use pyth_sdk_solana::state::SolanaPriceAccount;
 use solana_program::{hash::Hash, sysvar};
 use solana_program_test::*;
@@ -27,6 +28,12 @@ pub const PYTH_SOL_FEED: Pubkey = pubkey!("PythSo1Price1111111111111111111111111
 pub const PYTH_SOL_EQUIVALENT_FEED: Pubkey = pubkey!("PythSo1Equiva1entPrice111111111111111111111");
 pub const PYTH_MNDE_FEED: Pubkey = pubkey!("PythMndePrice111111111111111111111111111111");
 pub const FAKE_PYTH_USDC_FEED: Pubkey = pubkey!("FakePythUsdcPrice11111111111111111111111111");
+
+pub const TEST_RESERVE_CONFIG: ReserveConfig = ReserveConfig {
+    status: ReserveStatus::Active.into(),
+    asset_tier: 0,
+
+};
 
 pub struct TestFixture {
     pub context: Rc<RefCell<ProgramTestContext>>,

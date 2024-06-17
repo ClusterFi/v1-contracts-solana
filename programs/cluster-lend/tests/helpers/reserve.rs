@@ -2,6 +2,7 @@ use anchor_lang::{prelude::*, system_program, InstructionData, ToAccountMetas};
 use anchor_spl::token;
 use anyhow::Result;
 use cluster_lend::{
+    constants::VALUE_BYTE_ARRAY_LEN_RESERVE,
     utils::pda::{init_reserve_pdas_program_id, lending_market_auth, InitReservePdas},
     ReserveConfig,
 };
@@ -97,7 +98,7 @@ impl ReserveFixture {
         Ok(())
     }
 
-    pub async fn try_update_reserve(
+    pub async fn try_update_reserve_mode(
         &self,
         owner: Keypair,
         mode: u64,
@@ -112,7 +113,38 @@ impl ReserveFixture {
         let ix = Instruction {
             program_id: cluster_lend::id(),
             accounts: accounts.to_account_metas(Some(true)),
-            data: cluster_lend::instruction::UpdateReserve { mode, value }.data(),
+            data: cluster_lend::instruction::UpdateReserveMode { mode, value }.data(),
+        };
+
+        let tx = Transaction::new_signed_with_payer(
+            &[ix],
+            Some(&ctx.payer.pubkey()),
+            &[&ctx.payer, &owner],
+            ctx.last_blockhash,
+        );
+        ctx.banks_client.process_transaction(tx).await?;
+
+        Ok(())
+    }
+
+    pub async fn try_update_reserve(
+        &self,
+        owner: Keypair,
+        config: ReserveConfig,
+    ) -> Result<(), BanksClientError> {
+        let mut value = [0; VALUE_BYTE_ARRAY_LEN_RESERVE];
+        let data = borsh::BorshSerialize::try_to_vec(&config).unwrap();
+
+        let mut ctx = self.ctx.borrow_mut();
+        let accounts = cluster_lend::accounts::UpdateReserveCtx {
+            reserve: self.key,
+            lending_market: self.lending_market,
+            owner: owner.pubkey(),
+        };
+        let ix = Instruction {
+            program_id: cluster_lend::id(),
+            accounts: accounts.to_account_metas(Some(true)),
+            data: cluster_lend::instruction::UpdateReserve { value }.data(),
         };
 
         let tx = Transaction::new_signed_with_payer(

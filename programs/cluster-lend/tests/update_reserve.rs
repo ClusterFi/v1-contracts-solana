@@ -39,7 +39,7 @@ async fn success_update_reserve() {
     .await
     .unwrap();
 
-    reserve_f.try_update_reserve(test_f.payer_keypair(), UpdateConfigMode::, value)
+    reserve_f.try_update_reserve(test_f.payer_keypair(), );
 
     // Fetch reserve account
     let reserve: Reserve = test_f.load_and_deserialize(&reserve_f.key).await;
