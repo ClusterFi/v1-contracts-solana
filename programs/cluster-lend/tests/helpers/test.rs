@@ -239,7 +239,6 @@ impl TestFixture {
         let bytes = bytemuck::bytes_of(&data);
 
         let mut aso = AccountSharedData::from(account);
-
         aso.set_data_from_slice(bytes);
 
         ctx.set_account(&address, &aso);

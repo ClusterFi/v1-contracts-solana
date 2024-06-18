@@ -15,6 +15,7 @@ pub(super) fn get_validated_price(
     unix_timestamp: clock::UnixTimestamp,
 ) -> Option<GetPriceResult> {
     let unix_timestamp = u64::try_from(unix_timestamp).unwrap();
+    msg!("unix_timestamp: {}", unix_timestamp);
 
     let TimestampedPriceWithTwap { price, twap } = price_and_twap;
 
@@ -31,6 +32,7 @@ pub(super) fn get_validated_price(
             return None;
         }
     };
+    msg!("price: {:?}", price.timestamp);
 
     match check_price_age(
         price.timestamp,

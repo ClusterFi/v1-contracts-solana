@@ -30,7 +30,7 @@ pub fn process_initialize_obligation(
     obligation.init(crate::state::obligation::InitObligationParams {
         current_slot: clock.slot,
         lending_market: ctx.accounts.lending_market.key(),
-        owner: ctx.accounts.obligation_owner.key(),
+        owner: ctx.accounts.owner.key(),
         deposits: [ObligationCollateral::default(); 8],
         borrows: [ObligationLiquidity::default(); 5],
         tag: args.tag as u64,
@@ -42,13 +42,13 @@ pub fn process_initialize_obligation(
 #[derive(Accounts)]
 #[instruction(args: InitObligationArgs)]
 pub struct InitializeObligationCtx<'info> {
-    pub obligation_owner: Signer<'info>,
+    pub owner: Signer<'info>,
 
     #[account(mut)]
     pub fee_payer: Signer<'info>,
 
     #[account(init,
-        seeds = [&[args.tag], &[args.id], obligation_owner.key().as_ref(), lending_market.key().as_ref(), seed1_account.key().as_ref(), seed2_account.key().as_ref()],
+        seeds = [&[args.tag], &[args.id], owner.key().as_ref(), lending_market.key().as_ref(), seed1_account.key().as_ref(), seed2_account.key().as_ref()],
         bump,
         payer = fee_payer,
         space = OBLIGATION_SIZE + 8,
