@@ -1,6 +1,7 @@
 use std::{cell::RefCell, rc::Rc};
 
 use anchor_lang::prelude::*;
+use anyhow::Result;
 
 use bincode::deserialize;
 use cluster_lend::{
@@ -11,10 +12,12 @@ use cluster_lend::{
 use pyth_sdk_solana::state::SolanaPriceAccount;
 use solana_program::{hash::Hash, sysvar};
 use solana_program_test::*;
-use solana_sdk::{account::AccountSharedData, pubkey, signature::Keypair, signer::Signer};
+use solana_sdk::{
+    account::AccountSharedData, instruction::Instruction, pubkey, signature::Keypair,
+    signer::Signer, transaction::Transaction,
+};
 
 use crate::{
-    lending_market::LendingMarketFixture,
     spl::MintFixture,
     utils::{clone_keypair, create_pyth_price_account},
 };
@@ -293,5 +296,24 @@ impl TestFixture {
                 .data,
         )
         .unwrap()
+    }
+
+    pub async fn send_transaction(
+        &self,
+        ixs: Vec<Instruction>,
+        signers: &[Keypair],
+    ) -> Result<(), BanksClientError> {
+        let ctx = self.context.borrow();
+
+        let tx = Transaction::new_signed_with_payer(
+            &ixs,
+            Some(&self.payer()),
+            signers,
+            ctx.last_blockhash,
+        );
+
+        ctx.banks_client.process_transaction(tx).await?;
+
+        Ok(())
     }
 }

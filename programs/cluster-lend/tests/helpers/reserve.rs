@@ -21,39 +21,29 @@ use std::{cell::RefCell, mem, rc::Rc};
 use crate::spl::MintFixture;
 
 pub struct ReserveFixture {
-    ctx: Rc<RefCell<ProgramTestContext>>,
     pub key: Pubkey,
+    pub owner: Pubkey,
+    pub payer: Pubkey,
     pub lending_market: Pubkey,
-    pub reserve_liquidity_mint: Pubkey,
-    pub reserve_collateral_mint: Pubkey,
-    pub config: ReserveConfig,
+    pub liquidity_mint: Pubkey,
 }
 
 impl ReserveFixture {
-    pub async fn new(
-        ctx: Rc<RefCell<ProgramTestContext>>,
-        lending_market: Pubkey,
-        reserve_liquidity_mint: Pubkey,
-        account: &Keypair,
-    ) -> Result<ReserveFixture, BanksClientError> {
-        let ctx_ref = ctx.clone();
-        let lending_market_authority = lending_market_auth(&lending_market);
+    pub fn initialize_reserve_ix(&self) -> Result<Instruction> {
+        let lending_market_authority = lending_market_auth(&self.lending_market);
         let pdas = init_reserve_pdas_program_id(
             &cluster_lend::ID,
-            &lending_market,
-            &reserve_liquidity_mint,
+            &self.lending_market,
+            &self.liquidity_mint,
         );
-        let reserve_collateral_mint = pdas.collateral_ctoken_mint;
-
-        let mut ctx = ctx.borrow_mut();
 
         let accounts = cluster_lend::accounts::InitializeReserveCtx {
-            owner: ctx.payer.pubkey(),
-            lending_market,
+            owner: self.owner,
+            lending_market: self.lending_market,
             lending_market_authority,
-            reserve: account.pubkey(),
-            reserve_liquidity_mint,
-            reserve_collateral_mint,
+            reserve: self.key,
+            reserve_liquidity_mint: self.liquidity_mint,
+            reserve_collateral_mint: pdas.collateral_ctoken_mint,
             reserve_liquidity_supply: pdas.liquidity_supply_vault,
             reserve_collateral_supply: pdas.collateral_supply_vault,
             fee_receiver: pdas.fee_vault,
@@ -67,91 +57,18 @@ impl ReserveFixture {
             data: cluster_lend::instruction::InitializeReserve {}.data(),
         };
 
-        let tx = Transaction::new_signed_with_payer(
-            &[ix],
-            Some(&ctx.payer.pubkey()),
-            &[&ctx.payer, &account],
-            ctx.last_blockhash,
-        );
-        ctx.banks_client.process_transaction(tx).await?;
-
-        Ok(ReserveFixture {
-            ctx: ctx_ref,
-            key: account.pubkey(),
-            lending_market,
-            config: ReserveConfig::default(),
-            reserve_liquidity_mint,
-            reserve_collateral_mint,
-        })
+        Ok(ix)
     }
 
-    pub async fn try_refresh_reserve(&self, pyth_oracle: Pubkey) -> Result<(), BanksClientError> {
-        let mut ctx = self.ctx.borrow_mut();
-        let accounts = cluster_lend::accounts::RefreshReserveCtx {
-            reserve: self.key,
-            lending_market: self.lending_market,
-            pyth_oracle: Some(pyth_oracle),
-        };
-        let ix = Instruction {
-            program_id: cluster_lend::id(),
-            accounts: accounts.to_account_metas(Some(true)),
-            data: cluster_lend::instruction::RefreshReserve {}.data(),
-        };
-
-        let tx = Transaction::new_signed_with_payer(
-            &[ix],
-            Some(&ctx.payer.pubkey()),
-            &[&ctx.payer],
-            ctx.last_blockhash,
-        );
-        ctx.banks_client.process_transaction(tx).await?;
-
-        Ok(())
-    }
-
-    pub async fn try_update_reserve_mode(
-        &self,
-        owner: Keypair,
-        mode: u64,
-        value: [u8; 32],
-    ) -> Result<(), BanksClientError> {
-        let mut ctx = self.ctx.borrow_mut();
-        let accounts = cluster_lend::accounts::UpdateReserveCtx {
-            reserve: self.key,
-            lending_market: self.lending_market,
-            owner: owner.pubkey(),
-        };
-        let ix = Instruction {
-            program_id: cluster_lend::id(),
-            accounts: accounts.to_account_metas(Some(true)),
-            data: cluster_lend::instruction::UpdateReserveMode { mode, value }.data(),
-        };
-
-        let tx = Transaction::new_signed_with_payer(
-            &[ix],
-            Some(&ctx.payer.pubkey()),
-            &[&ctx.payer, &owner],
-            ctx.last_blockhash,
-        );
-        ctx.banks_client.process_transaction(tx).await?;
-
-        Ok(())
-    }
-
-    pub async fn try_update_reserve(
-        &mut self,
-        owner: Keypair,
-        config: ReserveConfig,
-    ) -> Result<(), BanksClientError> {
+    pub fn update_reserve_ix(&self, config: ReserveConfig) -> Result<Instruction> {
         let mut value = [0; VALUE_BYTE_ARRAY_LEN_RESERVE];
         let data = borsh::BorshSerialize::try_to_vec(&config).unwrap();
         value.copy_from_slice(data.as_slice());
 
-        let mut ctx = self.ctx.borrow_mut();
         let accounts = cluster_lend::accounts::UpdateReserveCtx {
             reserve: self.key,
             lending_market: self.lending_market,
-            owner: owner.pubkey(),
+            owner: self.owner,
         };
         let ix = Instruction {
             program_id: cluster_lend::id(),
@@ -159,39 +76,57 @@ impl ReserveFixture {
             data: cluster_lend::instruction::UpdateReserve { value }.data(),
         };
 
-        let tx = Transaction::new_signed_with_payer(
-            &[ix],
-            Some(&ctx.payer.pubkey()),
-            &[&ctx.payer, &owner],
-            ctx.last_blockhash,
-        );
-        ctx.banks_client.process_transaction(tx).await?;
-
-        self.config = config;
-
-        Ok(())
+        Ok(ix)
     }
 
-    pub async fn try_deposit(
+    pub fn update_reserve_mode_ix(&self, mode: u64, value: [u8; 32]) -> Result<Instruction> {
+        let accounts = cluster_lend::accounts::UpdateReserveCtx {
+            reserve: self.key,
+            lending_market: self.lending_market,
+            owner: self.owner,
+        };
+        let ix = Instruction {
+            program_id: cluster_lend::id(),
+            accounts: accounts.to_account_metas(Some(true)),
+            data: cluster_lend::instruction::UpdateReserveMode { mode, value }.data(),
+        };
+
+        Ok(ix)
+    }
+
+    pub fn refresh_reserve_ix(&self, pyth_oracle: Option<Pubkey>) -> Result<Instruction> {
+        let accounts = cluster_lend::accounts::RefreshReserveCtx {
+            reserve: self.key,
+            lending_market: self.lending_market,
+            pyth_oracle,
+        };
+        let ix = Instruction {
+            program_id: cluster_lend::id(),
+            accounts: accounts.to_account_metas(Some(true)),
+            data: cluster_lend::instruction::RefreshReserve {}.data(),
+        };
+
+        Ok(ix)
+    }
+
+    pub fn deposit_reserve_ix(
         &self,
-        owner: &Keypair,
+        liquidity_amount: u64,
         user_source_liquidity: Pubkey,
         user_destination_collateral: Pubkey,
-        liquidity_amount: u64,
-    ) -> Result<(), BanksClientError> {
-        let mut ctx = self.ctx.borrow_mut();
+    ) -> Result<Instruction> {
         let lending_market_authority = lending_market_auth(&self.lending_market);
 
         let pdas = init_reserve_pdas_program_id(
             &cluster_lend::ID,
             &self.lending_market,
-            &self.reserve_liquidity_mint,
+            &self.liquidity_mint,
         );
 
         let accounts = cluster_lend::accounts::DepositReserveLiquidityCtx {
             reserve: self.key,
             lending_market: self.lending_market,
-            owner: owner.pubkey(),
+            owner: self.owner,
             lending_market_authority,
             reserve_collateral_mint: pdas.collateral_ctoken_mint,
             reserve_liquidity_supply: pdas.liquidity_supply_vault,
@@ -206,14 +141,6 @@ impl ReserveFixture {
             data: cluster_lend::instruction::DepositReserveLiquidity { liquidity_amount }.data(),
         };
 
-        let tx = Transaction::new_signed_with_payer(
-            &[ix],
-            Some(&ctx.payer.pubkey()),
-            &[&ctx.payer, &owner],
-            ctx.last_blockhash,
-        );
-        ctx.banks_client.process_transaction(tx).await?;
-
-        Ok(())
+        Ok(ix)
     }
 }
