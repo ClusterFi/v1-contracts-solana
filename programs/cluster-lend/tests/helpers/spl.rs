@@ -128,10 +128,11 @@ impl MintFixture {
 
     pub async fn create_token_account_and_mint_to<T: Into<f64>>(
         &self,
+        owner: &Keypair,
         ui_amount: T,
     ) -> TokenAccountFixture {
-        let payer = self.ctx.borrow().payer.pubkey();
-        let token_account_f = TokenAccountFixture::new(self.ctx.clone(), &self.key, &payer).await;
+        let token_account_f =
+            TokenAccountFixture::new(self.ctx.clone(), &self.key, &owner.pubkey()).await;
 
         let mint_to_ix = self.make_mint_to_ix(
             &token_account_f.key,

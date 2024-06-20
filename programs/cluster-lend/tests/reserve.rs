@@ -38,7 +38,7 @@ async fn success_init_update_reserve() {
     .unwrap();
 
     let reserve_key = Keypair::new();
-    let reserve_f = ReserveFixture::new(
+    let mut reserve_f = ReserveFixture::new(
         Rc::clone(&test_f.context),
         lending_market_f.key,
         test_f.usdc_mint.key,

@@ -1,112 +1,222 @@
 use anchor_lang::{prelude::*, system_program, InstructionData, ToAccountMetas};
 use anchor_spl::token;
 use anyhow::Result;
-use cluster_lend::utils::pda::lending_market_auth;
-use solana_program::{instruction::Instruction, sysvar};
-use solana_program_test::{BanksClientError, ProgramTestContext};
-use solana_sdk::{
-    compute_budget::ComputeBudgetInstruction, signature::Keypair, signer::Signer,
-    transaction::Transaction,
+use cluster_lend::{
+    utils::pda::{init_reserve_pdas_program_id, lending_market_auth},
+    InitObligationArgs,
 };
-use std::{cell::RefCell, mem, rc::Rc};
+use solana_program::{instruction::Instruction, rent::Rent, sysvar::SysvarId};
 
-pub struct LendingMarketFixture {
-    ctx: Rc<RefCell<ProgramTestContext>>,
+pub struct ObligationFixture {
     pub key: Pubkey,
+    pub owner: Pubkey,
+    pub payer: Pubkey,
+    pub lending_market: Pubkey,
 }
 
-impl LendingMarketFixture {
-    pub async fn new(
-        ctx: Rc<RefCell<ProgramTestContext>>,
-        quote_currency: [u8; 32],
-        account: &Keypair,
-    ) -> Result<LendingMarketFixture, BanksClientError> {
-        let ctx_ref = ctx.clone();
-        let lending_market_authority = lending_market_auth(&account.pubkey());
+impl ObligationFixture {
+    pub fn initialize_obligation_ix(&self, args: InitObligationArgs) -> Result<Instruction> {
+        let accounts = cluster_lend::accounts::InitializeObligationCtx {
+            owner: self.owner,
+            fee_payer: self.payer,
+            lending_market: self.lending_market,
+            obligation: self.key,
+            seed1_account: Pubkey::default(),
+            seed2_account: Pubkey::default(),
+            rent: Rent::id(),
+            token_program: token::ID,
+            system_program: system_program::ID,
+        };
+        let ix = Instruction {
+            program_id: cluster_lend::id(),
+            accounts: accounts.to_account_metas(Some(true)),
+            data: cluster_lend::instruction::InitializeObligation { args }.data(),
+        };
 
-        let mut ctx = ctx.borrow_mut();
+        Ok(ix)
+    }
 
-        let accounts = cluster_lend::accounts::InitializeMarketCtx {
-            owner: ctx.payer.pubkey(),
-            lending_market: account.pubkey(),
+    pub fn refresh_obligation_ix(&self) -> Result<Instruction> {
+        let accounts = cluster_lend::accounts::RefreshObligationCtx {
+            lending_market: self.lending_market,
+            obligation: self.key,
+        };
+        let ix = Instruction {
+            program_id: cluster_lend::id(),
+            accounts: accounts.to_account_metas(Some(true)),
+            data: cluster_lend::instruction::RefreshObligation {}.data(),
+        };
+
+        Ok(ix)
+    }
+
+    pub fn deposit_obligation_ix(
+        &self,
+        collateral_amount: u64,
+        deposit_reserve: Pubkey,
+        reserve_destination_collateral: Pubkey,
+        user_source_collateral: Pubkey,
+    ) -> Result<Instruction> {
+        let accounts = cluster_lend::accounts::DepositObligationCollateralCtx {
+            owner: self.owner,
+            lending_market: self.lending_market,
+            obligation: self.key,
+            deposit_reserve,
+            reserve_destination_collateral,
+            user_source_collateral,
+            token_program: token::ID,
+            instruction_sysvar_account: Instructions::id(),
+        };
+
+        let ix = Instruction {
+            program_id: cluster_lend::id(),
+            accounts: accounts.to_account_metas(Some(true)),
+            data: cluster_lend::instruction::DepositObligationCollateral { collateral_amount }
+                .data(),
+        };
+
+        Ok(ix)
+    }
+
+    pub fn withdraw_obligation_ix(
+        &self,
+        collateral_amount: u64,
+        withdraw_reserve: Pubkey,
+        reserve_source_collateral: Pubkey,
+        user_destination_collateral: Pubkey,
+    ) -> Result<Instruction> {
+        let lending_market_authority = lending_market_auth(&self.lending_market);
+
+        let accounts = cluster_lend::accounts::WithdrawObligationCollateralCtx {
+            owner: self.owner,
+            lending_market: self.lending_market,
             lending_market_authority,
-            system_program: system_program::ID,
+            obligation: self.key,
+            withdraw_reserve,
+            reserve_source_collateral,
+            user_destination_collateral,
+            token_program: token::ID,
+            instruction_sysvar_account: Instructions::id(),
         };
+
         let ix = Instruction {
             program_id: cluster_lend::id(),
             accounts: accounts.to_account_metas(Some(true)),
-            data: cluster_lend::instruction::InitializeMarket { quote_currency }.data(),
+            data: cluster_lend::instruction::WithdrawObligationCollateral { collateral_amount }
+                .data(),
         };
 
-        let tx = Transaction::new_signed_with_payer(
-            &[ix],
-            Some(&ctx.payer.pubkey()),
-            &[&ctx.payer, &account],
-            ctx.last_blockhash,
-        );
-        ctx.banks_client.process_transaction(tx).await?;
-
-        Ok(LendingMarketFixture {
-            ctx: ctx_ref,
-            key: account.pubkey(),
-        })
+        Ok(ix)
     }
 
-    pub async fn try_update_market(
+    pub fn borrow_obligation_ix(
         &self,
-        owner: Keypair,
-        mode: u64,
-        value: [u8; 72],
-    ) -> Result<(), BanksClientError> {
-        let mut ctx = self.ctx.borrow_mut();
-        let accounts = cluster_lend::accounts::UpdateMarketCtx {
-            owner: owner.pubkey(),
-            lending_market: self.key,
-            system_program: system_program::ID,
+        liquidity_amount: u64,
+        borrow_reserve: Pubkey,
+        reserve_source_liquidity: Pubkey,
+        borrow_reserve_liquidity_fee_receiver: Pubkey,
+        user_destination_liquidity: Pubkey,
+    ) -> Result<Instruction> {
+        let lending_market_authority = lending_market_auth(&self.lending_market);
+
+        let accounts = cluster_lend::accounts::BorrowObligationLiquidityCtx {
+            owner: self.owner,
+            lending_market: self.lending_market,
+            lending_market_authority,
+            obligation: self.key,
+            borrow_reserve,
+            reserve_source_liquidity,
+            borrow_reserve_liquidity_fee_receiver,
+            user_destination_liquidity,
+            token_program: token::ID,
+            instruction_sysvar_account: Instructions::id(),
         };
         let ix = Instruction {
             program_id: cluster_lend::id(),
             accounts: accounts.to_account_metas(Some(true)),
-            data: cluster_lend::instruction::UpdateMarket { mode, value }.data(),
+            data: cluster_lend::instruction::BorrowObligationLiquidity { liquidity_amount }.data(),
         };
 
-        let tx = Transaction::new_signed_with_payer(
-            &[ix],
-            Some(&ctx.payer.pubkey()),
-            &[&ctx.payer, &owner],
-            ctx.last_blockhash,
-        );
-        ctx.banks_client.process_transaction(tx).await?;
-
-        Ok(())
+        Ok(ix)
     }
 
-    pub async fn try_update_market_owner(
+    pub fn repay_obligation_ix(
         &self,
-        owner: Keypair,
-        new_owner: Pubkey,
-    ) -> Result<(), BanksClientError> {
-        let mut ctx = self.ctx.borrow_mut();
-        let accounts = cluster_lend::accounts::UpdateMarketOwnerCtx {
-            owner: owner.pubkey(),
-            lending_market: self.key,
-            new_owner,
-            system_program: system_program::ID,
+        liquidity_amount: u64,
+        repay_reserve: Pubkey,
+        reserve_destination_liquidity: Pubkey,
+        user_source_liquidity: Pubkey,
+    ) -> Result<Instruction> {
+        let accounts = cluster_lend::accounts::RepayObligationLiquidityCtx {
+            owner: self.owner,
+            lending_market: self.lending_market,
+            obligation: self.key,
+            repay_reserve,
+            reserve_destination_liquidity,
+            user_source_liquidity,
+            token_program: token::ID,
+            instruction_sysvar_account: Instructions::id(),
         };
         let ix = Instruction {
             program_id: cluster_lend::id(),
             accounts: accounts.to_account_metas(Some(true)),
-            data: cluster_lend::instruction::UpdateMarketOwner {}.data(),
+            data: cluster_lend::instruction::RepayObligationLiquidity { liquidity_amount }.data(),
         };
 
-        let tx = Transaction::new_signed_with_payer(
-            &[ix],
-            Some(&ctx.payer.pubkey()),
-            &[&ctx.payer, &owner],
-            ctx.last_blockhash,
-        );
-        ctx.banks_client.process_transaction(tx).await?;
+        Ok(ix)
+    }
 
-        Ok(())
+    pub fn liquidate_obligation_ix(
+        &self,
+        liquidity_amount: u64,
+        max_allowed_ltv_override_percent: u64,
+        min_acceptable_received_collateral_amount: u64,
+        liquidator: Pubkey,
+        repay_reserve: Pubkey,
+        repay_reserve_liquidity_supply: Pubkey,
+        withdraw_reserve: Pubkey,
+        withdraw_liquidity_mint: Pubkey,
+        user_destination_collateral: Pubkey,
+        user_source_liquidity: Pubkey,
+        user_destination_liquidity: Pubkey,
+    ) -> Result<Instruction> {
+        let lending_market_authority = lending_market_auth(&self.lending_market);
+
+        let pdas = init_reserve_pdas_program_id(
+            &cluster_lend::ID,
+            &self.lending_market,
+            &withdraw_liquidity_mint,
+        );
+
+        let accounts = cluster_lend::accounts::LiquidateObligationCtx {
+            liquidator,
+            lending_market: self.lending_market,
+            lending_market_authority,
+            obligation: self.key,
+            repay_reserve,
+            repay_reserve_liquidity_supply,
+            withdraw_reserve,
+            withdraw_reserve_collateral_mint: pdas.collateral_ctoken_mint,
+            withdraw_reserve_collateral_supply: pdas.collateral_supply_vault,
+            withdraw_reserve_liquidity_fee_receiver: pdas.fee_vault,
+            withdraw_reserve_liquidity_supply: pdas.liquidity_supply_vault,
+            user_source_liquidity,
+            user_destination_collateral,
+            user_destination_liquidity,
+            token_program: token::ID,
+            instruction_sysvar_account: Instructions::id(),
+        };
+        let ix = Instruction {
+            program_id: cluster_lend::id(),
+            accounts: accounts.to_account_metas(Some(true)),
+            data: cluster_lend::instruction::LiquidateObligation {
+                liquidity_amount,
+                max_allowed_ltv_override_percent,
+                min_acceptable_received_collateral_amount,
+            }
+            .data(),
+        };
+
+        Ok(ix)
     }
 }

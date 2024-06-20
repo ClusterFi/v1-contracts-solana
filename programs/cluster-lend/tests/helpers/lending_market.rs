@@ -11,24 +11,17 @@ use solana_sdk::{
 use std::{cell::RefCell, mem, rc::Rc};
 
 pub struct LendingMarketFixture {
-    ctx: Rc<RefCell<ProgramTestContext>>,
     pub key: Pubkey,
+    pub owner: Pubkey,
 }
 
 impl LendingMarketFixture {
-    pub async fn new(
-        ctx: Rc<RefCell<ProgramTestContext>>,
-        quote_currency: [u8; 32],
-        account: &Keypair,
-    ) -> Result<LendingMarketFixture, BanksClientError> {
-        let ctx_ref = ctx.clone();
-        let lending_market_authority = lending_market_auth(&account.pubkey());
-
-        let mut ctx = ctx.borrow_mut();
+    pub fn init_market_ix(&self, quote_currency: [u8; 32]) -> Result<Instruction> {
+        let lending_market_authority = lending_market_auth(&self.key);
 
         let accounts = cluster_lend::accounts::InitializeMarketCtx {
-            owner: ctx.payer.pubkey(),
-            lending_market: account.pubkey(),
+            owner: self.owner,
+            lending_market: self.key,
             lending_market_authority,
             system_program: system_program::ID,
         };
@@ -38,29 +31,12 @@ impl LendingMarketFixture {
             data: cluster_lend::instruction::InitializeMarket { quote_currency }.data(),
         };
 
-        let tx = Transaction::new_signed_with_payer(
-            &[ix],
-            Some(&ctx.payer.pubkey()),
-            &[&ctx.payer, &account],
-            ctx.last_blockhash,
-        );
-        ctx.banks_client.process_transaction(tx).await?;
-
-        Ok(LendingMarketFixture {
-            ctx: ctx_ref,
-            key: account.pubkey(),
-        })
+        Ok(ix)
     }
 
-    pub async fn try_update_market(
-        &self,
-        owner: Keypair,
-        mode: u64,
-        value: [u8; 72],
-    ) -> Result<(), BanksClientError> {
-        let mut ctx = self.ctx.borrow_mut();
+    pub fn update_market_ix(&self, mode: u64, value: [u8; 72]) -> Result<Instruction> {
         let accounts = cluster_lend::accounts::UpdateMarketCtx {
-            owner: owner.pubkey(),
+            owner: self.owner,
             lending_market: self.key,
             system_program: system_program::ID,
         };
@@ -70,25 +46,12 @@ impl LendingMarketFixture {
             data: cluster_lend::instruction::UpdateMarket { mode, value }.data(),
         };
 
-        let tx = Transaction::new_signed_with_payer(
-            &[ix],
-            Some(&ctx.payer.pubkey()),
-            &[&ctx.payer, &owner],
-            ctx.last_blockhash,
-        );
-        ctx.banks_client.process_transaction(tx).await?;
-
-        Ok(())
+        Ok(ix)
     }
 
-    pub async fn try_update_market_owner(
-        &self,
-        owner: Keypair,
-        new_owner: Pubkey,
-    ) -> Result<(), BanksClientError> {
-        let mut ctx = self.ctx.borrow_mut();
+    pub fn update_owner_ix(&self, new_owner: Pubkey) -> Result<Instruction> {
         let accounts = cluster_lend::accounts::UpdateMarketOwnerCtx {
-            owner: owner.pubkey(),
+            owner: self.owner,
             lending_market: self.key,
             new_owner,
             system_program: system_program::ID,
@@ -99,14 +62,6 @@ impl LendingMarketFixture {
             data: cluster_lend::instruction::UpdateMarketOwner {}.data(),
         };
 
-        let tx = Transaction::new_signed_with_payer(
-            &[ix],
-            Some(&ctx.payer.pubkey()),
-            &[&ctx.payer, &owner],
-            ctx.last_blockhash,
-        );
-        ctx.banks_client.process_transaction(tx).await?;
-
-        Ok(())
+        Ok(ix)
     }
 }
