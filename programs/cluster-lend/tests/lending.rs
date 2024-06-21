@@ -34,28 +34,9 @@ async fn success_lending() {
     // Create market & reserve
     let mut test_f = TestFixture::new().await;
 
-    let lending_market_key = Keypair::new();
-    let lending_market_f = LendingMarketFixture::new(
-        Rc::clone(&test_f.context),
-        USDC_QUOTE_CURRENCY,
-        &lending_market_key,
-    )
-    .await
-    .unwrap();
+    let test_f = TestFixture::new().await;
 
-    let mut reserve_f = ReserveFixture::new(
-        Rc::clone(&test_f.context),
-        lending_market_f.key,
-        test_f.usdc_mint.key,
-        &Keypair::new(),
-    )
-    .await
-    .unwrap();
-
-    reserve_f
-        .try_update_reserve(test_f.payer_keypair(), TEST_RESERVE_CONFIG)
-        .await
-        .unwrap();
+    let payer = test_f.payer_keypair();
 
     // create test user and supply test token
     let depositor = Keypair::new();
@@ -65,6 +46,22 @@ async fn success_lending() {
         .await;
     let balance = 1000 * ten_pow(USDC_MINT_DECIMALS as usize);
 
+    let lending_market_key = Keypair::new();
+    let lending_market_f = LendingMarketFixture {
+        key: lending_market_key.pubkey(),
+        owner: payer.pubkey(),
+    };
+
+    let reserve_key = Keypair::new();
+    let reserve_f = ReserveFixture {
+        key: reserve_key.pubkey(),
+        owner: payer.pubkey(),
+        payer: payer.pubkey(),
+        lending_market: lending_market_f.key,
+        liquidity_mint: test_f.usdc_mint.key,
+    };
+
+
     let user_destination_collateral = TokenAccountFixture::new_with_keypair(
         test_f.context.clone(),
         &reserve_f.reserve_collateral_mint,
@@ -73,6 +70,10 @@ async fn success_lending() {
     )
     .await
     .key;
+    reserve_f
+        .try_update_reserve(test_f.payer_keypair(), TEST_RESERVE_CONFIG)
+        .await
+        .unwrap();
 
     // deposit token
     let liquidity_amount = 1_000;

@@ -300,14 +300,13 @@ impl TestFixture {
 
     pub async fn send_transaction(
         &self,
-        ixs: Vec<Instruction>,
-        signers: &[Keypair],
+        ixs: &[Instruction],
+        signers: &[&Keypair],
     ) -> Result<(), BanksClientError> {
-        let ctx = self.context.borrow();
-
+        let mut ctx = self.context.borrow_mut();
         let tx = Transaction::new_signed_with_payer(
-            &ixs,
-            Some(&self.payer()),
+            ixs,
+            Some(&ctx.payer.pubkey()),
             signers,
             ctx.last_blockhash,
         );

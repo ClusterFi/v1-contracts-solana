@@ -1,24 +1,16 @@
 use anchor_lang::{prelude::*, system_program, InstructionData, ToAccountMetas};
-use anchor_spl::token::{self, spl_token::instruction, Token};
+use anchor_spl::token::{self, Token};
 use anyhow::Result;
 use cluster_lend::{
     constants::VALUE_BYTE_ARRAY_LEN_RESERVE,
-    utils::pda::{init_reserve_pdas_program_id, lending_market_auth, InitReservePdas},
+    utils::pda::{init_reserve_pdas_program_id, lending_market_auth},
     ReserveConfig,
 };
 use solana_program::instruction::Instruction;
-use solana_program_test::{BanksClientError, ProgramTestContext};
 use solana_sdk::{
-    compute_budget::ComputeBudgetInstruction,
     rent,
-    signature::Keypair,
-    signer::Signer,
-    sysvar::{id, instructions, SysvarId},
-    transaction::Transaction,
+    sysvar::{instructions, SysvarId},
 };
-use std::{cell::RefCell, mem, rc::Rc};
-
-use crate::spl::MintFixture;
 
 pub struct ReserveFixture {
     pub key: Pubkey,
@@ -29,7 +21,7 @@ pub struct ReserveFixture {
 }
 
 impl ReserveFixture {
-    pub fn initialize_reserve_ix(&self) -> Result<Instruction> {
+    pub fn initialize_reserve_ix(&self) -> Instruction {
         let lending_market_authority = lending_market_auth(&self.lending_market);
         let pdas = init_reserve_pdas_program_id(
             &cluster_lend::ID,
@@ -57,10 +49,10 @@ impl ReserveFixture {
             data: cluster_lend::instruction::InitializeReserve {}.data(),
         };
 
-        Ok(ix)
+        ix
     }
 
-    pub fn update_reserve_ix(&self, config: ReserveConfig) -> Result<Instruction> {
+    pub fn update_reserve_ix(&self, config: ReserveConfig) -> Instruction {
         let mut value = [0; VALUE_BYTE_ARRAY_LEN_RESERVE];
         let data = borsh::BorshSerialize::try_to_vec(&config).unwrap();
         value.copy_from_slice(data.as_slice());
@@ -76,10 +68,10 @@ impl ReserveFixture {
             data: cluster_lend::instruction::UpdateReserve { value }.data(),
         };
 
-        Ok(ix)
+        ix
     }
 
-    pub fn update_reserve_mode_ix(&self, mode: u64, value: [u8; 32]) -> Result<Instruction> {
+    pub fn update_reserve_mode_ix(&self, mode: u64, value: [u8; 32]) -> Instruction {
         let accounts = cluster_lend::accounts::UpdateReserveCtx {
             reserve: self.key,
             lending_market: self.lending_market,
@@ -91,10 +83,10 @@ impl ReserveFixture {
             data: cluster_lend::instruction::UpdateReserveMode { mode, value }.data(),
         };
 
-        Ok(ix)
+        ix
     }
 
-    pub fn refresh_reserve_ix(&self, pyth_oracle: Option<Pubkey>) -> Result<Instruction> {
+    pub fn refresh_reserve_ix(&self, pyth_oracle: Option<Pubkey>) -> Instruction {
         let accounts = cluster_lend::accounts::RefreshReserveCtx {
             reserve: self.key,
             lending_market: self.lending_market,
@@ -106,7 +98,7 @@ impl ReserveFixture {
             data: cluster_lend::instruction::RefreshReserve {}.data(),
         };
 
-        Ok(ix)
+        ix
     }
 
     pub fn deposit_reserve_ix(
@@ -114,7 +106,7 @@ impl ReserveFixture {
         liquidity_amount: u64,
         user_source_liquidity: Pubkey,
         user_destination_collateral: Pubkey,
-    ) -> Result<Instruction> {
+    ) -> Instruction {
         let lending_market_authority = lending_market_auth(&self.lending_market);
 
         let pdas = init_reserve_pdas_program_id(
@@ -141,6 +133,80 @@ impl ReserveFixture {
             data: cluster_lend::instruction::DepositReserveLiquidity { liquidity_amount }.data(),
         };
 
-        Ok(ix)
+        ix
+    }
+
+    pub fn flash_borrow_ix(
+        &self,
+        liquidity_amount: u64,
+        user_transfer_authority: Pubkey,
+        user_destination_liquidity: Pubkey,
+    ) -> Instruction {
+        let lending_market_authority = lending_market_auth(&self.lending_market);
+
+        let pdas = init_reserve_pdas_program_id(
+            &cluster_lend::ID,
+            &self.lending_market,
+            &self.liquidity_mint,
+        );
+
+        let accounts = cluster_lend::accounts::FlashBorrowReserveCtx {
+            user_transfer_authority,
+            reserve: self.key,
+            lending_market: self.lending_market,
+            lending_market_authority,
+            reserve_source_liquidity: pdas.liquidity_supply_vault,
+            reserve_liquidity_fee_receiver: pdas.fee_vault,
+            user_destination_liquidity,
+            sysvar_info: Instructions::id(),
+            token_program: token::ID,
+        };
+        let ix = Instruction {
+            program_id: cluster_lend::id(),
+            accounts: accounts.to_account_metas(Some(true)),
+            data: cluster_lend::instruction::FlashBorrowReserveLiquidity { liquidity_amount }
+                .data(),
+        };
+
+        ix
+    }
+
+    pub fn flash_repay_ix(
+        &self,
+        liquidity_amount: u64,
+        borrow_instruction_index: u8,
+        user_transfer_authority: Pubkey,
+        user_source_liquidity: Pubkey,
+    ) -> Instruction {
+        let lending_market_authority = lending_market_auth(&self.lending_market);
+
+        let pdas = init_reserve_pdas_program_id(
+            &cluster_lend::ID,
+            &self.lending_market,
+            &self.liquidity_mint,
+        );
+
+        let accounts = cluster_lend::accounts::FlashRepayReserveCtx {
+            user_transfer_authority,
+            reserve: self.key,
+            lending_market: self.lending_market,
+            lending_market_authority,
+            reserve_destination_liquidity: pdas.liquidity_supply_vault,
+            reserve_liquidity_fee_receiver: pdas.fee_vault,
+            user_source_liquidity,
+            sysvar_info: Instructions::id(),
+            token_program: token::ID,
+        };
+        let ix = Instruction {
+            program_id: cluster_lend::id(),
+            accounts: accounts.to_account_metas(Some(true)),
+            data: cluster_lend::instruction::FlashRepayReserveLiquidity {
+                liquidity_amount,
+                borrow_instruction_index,
+            }
+            .data(),
+        };
+
+        ix
     }
 }

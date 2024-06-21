@@ -15,7 +15,7 @@ pub struct ObligationFixture {
 }
 
 impl ObligationFixture {
-    pub fn initialize_obligation_ix(&self, args: InitObligationArgs) -> Result<Instruction> {
+    pub fn initialize_obligation_ix(&self, args: InitObligationArgs) -> Instruction {
         let accounts = cluster_lend::accounts::InitializeObligationCtx {
             owner: self.owner,
             fee_payer: self.payer,
@@ -33,10 +33,10 @@ impl ObligationFixture {
             data: cluster_lend::instruction::InitializeObligation { args }.data(),
         };
 
-        Ok(ix)
+        ix
     }
 
-    pub fn refresh_obligation_ix(&self) -> Result<Instruction> {
+    pub fn refresh_obligation_ix(&self) -> Instruction {
         let accounts = cluster_lend::accounts::RefreshObligationCtx {
             lending_market: self.lending_market,
             obligation: self.key,
@@ -47,7 +47,7 @@ impl ObligationFixture {
             data: cluster_lend::instruction::RefreshObligation {}.data(),
         };
 
-        Ok(ix)
+        ix
     }
 
     pub fn deposit_obligation_ix(
@@ -56,7 +56,7 @@ impl ObligationFixture {
         deposit_reserve: Pubkey,
         reserve_destination_collateral: Pubkey,
         user_source_collateral: Pubkey,
-    ) -> Result<Instruction> {
+    ) -> Instruction {
         let accounts = cluster_lend::accounts::DepositObligationCollateralCtx {
             owner: self.owner,
             lending_market: self.lending_market,
@@ -75,7 +75,7 @@ impl ObligationFixture {
                 .data(),
         };
 
-        Ok(ix)
+        ix
     }
 
     pub fn withdraw_obligation_ix(
@@ -84,7 +84,7 @@ impl ObligationFixture {
         withdraw_reserve: Pubkey,
         reserve_source_collateral: Pubkey,
         user_destination_collateral: Pubkey,
-    ) -> Result<Instruction> {
+    ) -> Instruction {
         let lending_market_authority = lending_market_auth(&self.lending_market);
 
         let accounts = cluster_lend::accounts::WithdrawObligationCollateralCtx {
@@ -106,7 +106,7 @@ impl ObligationFixture {
                 .data(),
         };
 
-        Ok(ix)
+        ix
     }
 
     pub fn borrow_obligation_ix(
@@ -116,7 +116,7 @@ impl ObligationFixture {
         reserve_source_liquidity: Pubkey,
         borrow_reserve_liquidity_fee_receiver: Pubkey,
         user_destination_liquidity: Pubkey,
-    ) -> Result<Instruction> {
+    ) -> Instruction {
         let lending_market_authority = lending_market_auth(&self.lending_market);
 
         let accounts = cluster_lend::accounts::BorrowObligationLiquidityCtx {
@@ -137,7 +137,7 @@ impl ObligationFixture {
             data: cluster_lend::instruction::BorrowObligationLiquidity { liquidity_amount }.data(),
         };
 
-        Ok(ix)
+        ix
     }
 
     pub fn repay_obligation_ix(
@@ -146,7 +146,7 @@ impl ObligationFixture {
         repay_reserve: Pubkey,
         reserve_destination_liquidity: Pubkey,
         user_source_liquidity: Pubkey,
-    ) -> Result<Instruction> {
+    ) -> Instruction {
         let accounts = cluster_lend::accounts::RepayObligationLiquidityCtx {
             owner: self.owner,
             lending_market: self.lending_market,
@@ -163,7 +163,7 @@ impl ObligationFixture {
             data: cluster_lend::instruction::RepayObligationLiquidity { liquidity_amount }.data(),
         };
 
-        Ok(ix)
+        ix
     }
 
     pub fn liquidate_obligation_ix(
@@ -179,7 +179,7 @@ impl ObligationFixture {
         user_destination_collateral: Pubkey,
         user_source_liquidity: Pubkey,
         user_destination_liquidity: Pubkey,
-    ) -> Result<Instruction> {
+    ) -> Instruction {
         let lending_market_authority = lending_market_auth(&self.lending_market);
 
         let pdas = init_reserve_pdas_program_id(
@@ -217,6 +217,6 @@ impl ObligationFixture {
             .data(),
         };
 
-        Ok(ix)
+        ix
     }
 }
