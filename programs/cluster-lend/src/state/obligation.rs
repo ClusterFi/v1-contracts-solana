@@ -9,11 +9,10 @@ use derivative::Derivative;
 
 use super::{AssetTier, BigFractionBytes, LastUpdate};
 use crate::{
-    errors::{LendingError, LendingResult},
-    utils::{BigFraction, Fraction, FractionExtra, U256},
+    constants::OBLIGATION_SIZE, errors::{LendingError, LendingResult}, utils::{BigFraction, Fraction, FractionExtra, U256}
 };
 
-// static_assertions::const_assert_eq!(OBLIGATION_SIZE, std::mem::size_of::<Obligation>());
+static_assertions::const_assert_eq!(OBLIGATION_SIZE, std::mem::size_of::<Obligation>());
 static_assertions::const_assert_eq!(0, std::mem::size_of::<Obligation>() % 8);
 #[derive(PartialEq, Derivative)]
 #[derivative(Debug)]

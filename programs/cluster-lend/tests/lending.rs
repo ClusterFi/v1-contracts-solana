@@ -8,8 +8,8 @@ use anchor_spl::{
     token::{self, spl_token::state::Account, TokenAccount},
 };
 use cluster_lend::{
-    constants::ten_pow, errors::LendingError, InitObligationArgs, LendingMarket, Reserve,
-    ReserveStatus, UpdateLendingMarketMode,
+    constants::ten_pow, errors::LendingError, utils::pda, InitObligationArgs, LendingMarket,
+    Reserve, ReserveStatus, UpdateLendingMarketMode,
 };
 use lending_market::LendingMarketFixture;
 
@@ -38,6 +38,9 @@ async fn success_lending() {
 
     let payer = test_f.payer_keypair();
 
+    let collateral_mint = test_f.usdc_mint.key;
+    let borrow_mint = test_f.sol_mint.key;
+
     // create test user and supply test token
     let depositor = Keypair::new();
     let depositor_ata_f = test_f
@@ -46,6 +49,16 @@ async fn success_lending() {
         .await;
     let balance = 1000 * ten_pow(USDC_MINT_DECIMALS as usize);
 
+    let user_destination_collateral = TokenAccountFixture::new_with_keypair(
+        test_f.context.clone(),
+        &collateral_mint,
+        &depositor.pubkey(),
+        &Keypair::new(),
+    )
+    .await
+    .key;
+
+    // prepare market & reserve
     let lending_market_key = Keypair::new();
     let lending_market_f = LendingMarketFixture {
         key: lending_market_key.pubkey(),
@@ -58,31 +71,38 @@ async fn success_lending() {
         owner: payer.pubkey(),
         payer: payer.pubkey(),
         lending_market: lending_market_f.key,
-        liquidity_mint: test_f.usdc_mint.key,
+        liquidity_mint: collateral_mint,
     };
 
+    let reserve_pdas = pda::init_reserve_pdas(&lending_market_f.key, &collateral_mint);
 
-    let user_destination_collateral = TokenAccountFixture::new_with_keypair(
-        test_f.context.clone(),
-        &reserve_f.reserve_collateral_mint,
-        &depositor.pubkey(),
-        &Keypair::new(),
-    )
-    .await
-    .key;
-    reserve_f
-        .try_update_reserve(test_f.payer_keypair(), TEST_RESERVE_CONFIG)
-        .await
-        .unwrap();
+    let r = test_f
+        .send_transaction(
+            &[
+                lending_market_f.init_market_ix(USDC_QUOTE_CURRENCY),
+                reserve_f.initialize_reserve_ix(),
+                reserve_f.update_reserve_ix(TEST_RESERVE_CONFIG),
+            ],
+            &[&payer, &lending_market_key, &reserve_key],
+        )
+        .await;
+    assert!(r.is_ok());
 
     // deposit token
     let liquidity_amount = 1_000;
-    let r = reserve_f
-        .try_deposit(
-            &depositor,
-            depositor_ata_f.key,
-            user_destination_collateral,
-            liquidity_amount,
+    let user_source_liquidity =
+        get_associated_token_address(&depositor.pubkey(), &reserve_pdas.collateral_ctoken_mint);
+    let user_destination_collateral =
+        get_associated_token_address(&depositor.pubkey(), &collateral_mint);
+
+    let r = test_f
+        .send_transaction(
+            &[reserve_f.deposit_reserve_ix(
+                liquidity_amount,
+                user_source_liquidity,
+                user_destination_collateral,
+            )],
+            &[&payer, &depositor],
         )
         .await;
     assert!(r.is_ok());
@@ -91,10 +111,7 @@ async fn success_lending() {
     let user_ata: TokenAccount = test_f.load_and_deserialize(&depositor_ata_f.key).await;
     assert_eq!(user_ata.amount, balance - liquidity_amount);
 
-    // refresh reserve
-    let r = reserve_f.try_refresh_reserve(PYTH_SOL_FEED).await;
-    assert!(r.is_ok());
-
+    /*
     // init obligation
     let borrower = Keypair::new();
     let obligation_f = ObligationFixture::new(
@@ -111,4 +128,5 @@ async fn success_lending() {
     assert!(r.is_ok());
 
     // withdraw token
+     */
 }

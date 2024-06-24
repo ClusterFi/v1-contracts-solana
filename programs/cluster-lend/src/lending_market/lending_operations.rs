@@ -33,7 +33,7 @@ use utils::{
     check_obligation_collateral_deposit_reserve, check_obligation_fully_refreshed_and_not_null,
     check_obligation_liquidity_borrow_reserve, post_borrow_obligation_invariants,
     post_deposit_obligation_invariants, post_repay_obligation_invariants,
-    post_withdraw_obligation_invariants,
+    post_withdraw_obligation_invariants, validate_obligation_asset_tiers,
 };
 
 use super::withdrawal_operations::utils::{add_to_withdrawal_accum, sub_from_withdrawal_accum};
@@ -463,6 +463,8 @@ pub fn borrow_obligation_liquidity(
     obligation.has_debt = 1;
     obligation.last_update.mark_stale();
 
+    validate_obligation_asset_tiers(obligation)?;
+
     post_borrow_obligation_invariants(
         borrow_amount_f,
         obligation,
@@ -506,8 +508,9 @@ pub fn deposit_obligation_collateral(
 
     collateral.deposit(collateral_amount)?;
     obligation.last_update.mark_stale();
-
     deposit_reserve.last_update.mark_stale();
+
+    validate_obligation_asset_tiers(obligation)?;
 
     post_deposit_obligation_invariants(
         deposit_reserve
@@ -1223,6 +1226,7 @@ pub mod utils {
         constants::{ten_pow, FULL_BPS, PROGRAM_VERSION},
         state::{ObligationCollateral, ObligationLiquidity, ReserveConfig},
         utils::FRACTION_ONE_SCALED,
+        AssetTier,
     };
 
     pub(crate) fn repay_and_withdraw_from_obligation_post_liquidation(
@@ -1695,8 +1699,80 @@ pub mod utils {
             msg!("Invalid deleveraging_threshold_slots_per_bps, must be greater than 0");
             return err!(LendingError::InvalidConfig);
         }
+        if config.get_asset_tier() == AssetTier::IsolatedDebt
+            && !(config.loan_to_value_pct == 0 && config.liquidation_threshold_pct == 0)
+        {
+            msg!("LTV ratio and liquidation threshold must be 0 for isolated debt assets");
+            return Err(LendingError::InvalidConfig.into());
+        }
+        if config.get_asset_tier() == AssetTier::IsolatedCollateral && config.borrow_limit != 0 {
+            msg!("Borrow limit must be 0 for isolated collateral assets");
+            return Err(LendingError::InvalidConfig.into());
+        }
 
         config.borrow_rate_curve.validate()?;
+        Ok(())
+    }
+
+    pub fn validate_obligation_asset_tiers(obligation: &Obligation) -> Result<()> {
+        let deposit_tiers = obligation.get_deposit_asset_tiers();
+
+        let borrow_tiers = obligation.get_borrows_asset_tiers();
+
+        let count_isolated_deposits = deposit_tiers
+            .iter()
+            .filter(|&tier| *tier == AssetTier::IsolatedCollateral)
+            .count();
+        let count_isolated_borrows = borrow_tiers
+            .iter()
+            .filter(|&tier| *tier == AssetTier::IsolatedDebt)
+            .count();
+
+        if count_isolated_deposits > 1 {
+            msg!("Cannot deposit more than one isolated collateral tier asset");
+            return Err(LendingError::IsolatedAssetTierViolation.into());
+        }
+
+        if count_isolated_borrows > 1 {
+            msg!("Cannot borrow more than one isolated debt tier asset");
+            return Err(LendingError::IsolatedAssetTierViolation.into());
+        }
+
+        if count_isolated_deposits > 0 && count_isolated_borrows > 0 {
+            msg!("Cannot borrow an isolated tier asset while depositing and isolated tier asset");
+            return Err(LendingError::IsolatedAssetTierViolation.into());
+        }
+
+        if deposit_tiers.len() > 1 && count_isolated_deposits > 0 {
+            msg!("Cannot deposit isolated collateral tier asset with other assets");
+            return Err(LendingError::IsolatedAssetTierViolation.into());
+        }
+
+        if borrow_tiers.len() > 1 && count_isolated_borrows > 0 {
+            msg!("Cannot borrow isolated debt tier asset with other assets");
+            return Err(LendingError::IsolatedAssetTierViolation.into());
+        }
+
+        if deposit_tiers
+            .iter()
+            .filter(|&tier| *tier == AssetTier::IsolatedDebt)
+            .count()
+            > 0
+        {
+            msg!("Cannot deposit an isolated debt tier asset");
+            return Err(LendingError::IsolatedAssetTierViolation.into());
+        }
+
+        if borrow_tiers
+            .iter()
+            .filter(|&tier| *tier == AssetTier::IsolatedCollateral)
+            .count()
+            > 0
+        {
+            msg!("Cannot borrow an isolated collateral tier asset");
+            return Err(LendingError::IsolatedAssetTierViolation.into());
+        }
+
         Ok(())
     }
 }

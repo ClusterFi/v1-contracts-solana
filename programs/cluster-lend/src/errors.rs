@@ -124,24 +124,12 @@ pub enum LendingError {
     LiquidationSlippageError,
     #[msg("Isolated Asset Tier Violation")]
     IsolatedAssetTierViolation,
-    #[msg("The obligation's elevation group and the reserve's are not the same")]
-    InconsistentElevationGroup,
-    #[msg("The elevation group chosen for the reserve does not exist in the lending market")]
-    InvalidElevationGroup,
-    #[msg("The elevation group updated has wrong parameters set")]
-    InvalidElevationGroupConfig,
-    #[msg("The current obligation must have most or all its debt repaid before changing the elevation group")]
-    UnhealthyElevationGroupLtv,
-    #[msg("Elevation group does not accept any new loans or any new borrows/withdrawals")]
-    ElevationGroupNewLoansDisabled,
     #[msg("Reserve was deprecated, no longer usable")]
     ReserveDeprecated,
     #[msg("CPI disabled for this instruction")]
     CpiDisabled,
     #[msg("Reserve is marked as obsolete")]
     ReserveObsolete,
-    #[msg("Obligation already part of the same elevation group")]
-    ElevationGroupAlreadyActivated,
     #[msg("Obligation has a deposit in a deprecated reserve")]
     ObligationInDeprecatedReserve,
     #[msg("This collateral cannot be liquidated (LTV set to 0)")]
@@ -152,8 +140,6 @@ pub enum LendingError {
     BorrowLimitExceeded,
     #[msg("Cannot deposit above deposit limit")]
     DepositLimitExceeded,
-    #[msg("Reserve does not accept any new borrows outside elevation group")]
-    BorrowingDisabledOutsideElevationGroup,
     #[msg("Net value remaining too small")]
     NetValueRemainingTooSmall,
     #[msg("Cannot get the obligation in a worse position")]
