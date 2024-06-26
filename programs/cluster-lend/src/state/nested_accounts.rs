@@ -29,7 +29,7 @@ pub struct DepositObligationCollateralAccounts<'info> {
 }
 
 #[derive(Accounts)]
-pub struct DepositReserveLiquidityAndObligationCollateralAccounts<'info> {
+pub struct DepositLiquidityCollateralAccounts<'info> {
     pub user_source_liquidity: Box<Account<'info, TokenAccount>>,
     pub reserve: AccountLoader<'info, Reserve>,
 }
@@ -46,12 +46,6 @@ pub struct WithdrawObligationCollateralAccounts<'info> {
     /// CHECK: market authority PDA
     pub lending_market_authority: AccountInfo<'info>,
     pub token_program: Program<'info, Token>,
-}
-
-#[derive(Accounts)]
-pub struct WithdrawObligationCollateralAndRedeemReserveCollateralAccounts<'info> {
-    pub withdraw_reserve: AccountLoader<'info, Reserve>,
-    pub user_destination_liquidity: Box<Account<'info, TokenAccount>>,
 }
 
 #[derive(Accounts)]

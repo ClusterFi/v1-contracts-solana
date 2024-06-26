@@ -55,7 +55,7 @@ async fn success_init_update_reserve() {
         .send_transaction(
             &[
                 reserve_f.update_reserve_ix(TEST_RESERVE_CONFIG),
-                reserve_f.refresh_reserve_ix(Some(PYTH_SOL_FEED)),
+                reserve_f.refresh_ix(Some(PYTH_SOL_FEED)),
             ],
             &[&payer],
         )

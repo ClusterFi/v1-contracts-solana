@@ -86,7 +86,7 @@ impl ReserveFixture {
         ix
     }
 
-    pub fn refresh_reserve_ix(&self, pyth_oracle: Option<Pubkey>) -> Instruction {
+    pub fn refresh_ix(&self, pyth_oracle: Option<Pubkey>) -> Instruction {
         let accounts = cluster_lend::accounts::RefreshReserveCtx {
             reserve: self.key,
             lending_market: self.lending_market,
@@ -101,7 +101,7 @@ impl ReserveFixture {
         ix
     }
 
-    pub fn deposit_reserve_ix(
+    pub fn deposit_liquidity_ix(
         &self,
         liquidity_amount: u64,
         user_source_liquidity: Pubkey,

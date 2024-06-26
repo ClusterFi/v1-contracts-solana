@@ -7,6 +7,8 @@ use cluster_lend::{
 };
 use solana_program::{instruction::Instruction, rent::Rent, sysvar::SysvarId};
 
+use crate::reserve::ReserveFixture;
+
 pub struct ObligationFixture {
     pub key: Pubkey,
     pub owner: Pubkey,
@@ -36,7 +38,7 @@ impl ObligationFixture {
         ix
     }
 
-    pub fn refresh_obligation_ix(&self) -> Instruction {
+    pub fn refresh_ix(&self) -> Instruction {
         let accounts = cluster_lend::accounts::RefreshObligationCtx {
             lending_market: self.lending_market,
             obligation: self.key,
@@ -50,7 +52,7 @@ impl ObligationFixture {
         ix
     }
 
-    pub fn deposit_obligation_ix(
+    pub fn deposit_collateral_ix(
         &self,
         collateral_amount: u64,
         deposit_reserve: Pubkey,
@@ -78,7 +80,44 @@ impl ObligationFixture {
         ix
     }
 
-    pub fn withdraw_obligation_ix(
+    pub fn deposit_liquidity_collateral_ix(
+        &self,
+        liquidity_amount: u64,
+        reserve: &ReserveFixture,
+        user_source_liquidity: Pubkey,
+    ) -> Instruction {
+        let lending_market_authority = lending_market_auth(&self.lending_market);
+
+        let pdas = init_reserve_pdas_program_id(
+            &cluster_lend::ID,
+            &self.lending_market,
+            &reserve.liquidity_mint,
+        );
+
+        let accounts = cluster_lend::accounts::DepositLiquidityCollateralCtx {
+            owner: self.owner,
+            lending_market: self.lending_market,
+            lending_market_authority,
+            obligation: self.key,
+            reserve: reserve.key,
+            reserve_liquidity_supply: pdas.liquidity_supply_vault,
+            reserve_collateral_mint: pdas.collateral_ctoken_mint,
+            reserve_destination_deposit_collateral: pdas.collateral_supply_vault,
+            user_source_liquidity,
+            token_program: token::ID,
+            instruction_sysvar_account: Instructions::id(),
+        };
+
+        let ix = Instruction {
+            program_id: cluster_lend::id(),
+            accounts: accounts.to_account_metas(Some(true)),
+            data: cluster_lend::instruction::DepositLiquidityCollateral { liquidity_amount }.data(),
+        };
+
+        ix
+    }
+
+    pub fn withdraw_collateral_ix(
         &self,
         collateral_amount: u64,
         withdraw_reserve: Pubkey,
@@ -109,7 +148,7 @@ impl ObligationFixture {
         ix
     }
 
-    pub fn borrow_obligation_ix(
+    pub fn borrow_liquidity_ix(
         &self,
         liquidity_amount: u64,
         borrow_reserve: Pubkey,
@@ -140,7 +179,7 @@ impl ObligationFixture {
         ix
     }
 
-    pub fn repay_obligation_ix(
+    pub fn repay_liquidity_ix(
         &self,
         liquidity_amount: u64,
         repay_reserve: Pubkey,
@@ -166,7 +205,7 @@ impl ObligationFixture {
         ix
     }
 
-    pub fn liquidate_obligation_ix(
+    pub fn liquidate_ix(
         &self,
         liquidity_amount: u64,
         max_allowed_ltv_override_percent: u64,
