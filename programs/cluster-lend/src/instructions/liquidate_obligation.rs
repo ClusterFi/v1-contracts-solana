@@ -19,7 +19,7 @@ pub fn process_liquidate_obligation(
     max_allowed_ltv_override_percent: u64,
 ) -> Result<()> {
     xmsg!(
-        "LiquidateObligationAndRedeemReserveCollateral amount {} max_allowed_ltv_override_percent {}",
+        "LiquidateObligation amount {} max_allowed_ltv_override_percent {}",
         liquidity_amount,
         max_allowed_ltv_override_percent
     );
