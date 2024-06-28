@@ -1905,24 +1905,10 @@ describe('Leverage SDK tests', function () {
     const slippagePct = 0.01;
 
     console.log('Setting up market ===');
-    const requestElevationGroup = true;
-    const { env, kaminoMarket } = await createMarketWithTwoReservesToppedUp(
-      [collToken, new Decimal(1000.05)],
-      [debtToken, new Decimal(1000.05)],
-      requestElevationGroup
-    );
-
     const collReserve = kaminoMarket.getReserveBySymbol(collToken);
 
     const buffer = Buffer.alloc(8 * 32);
     buffer.writeBigUint64LE(BigInt(U64_MAX), 0);
-
-    await updateReserveSingleValue(
-      env,
-      collReserve!,
-      buffer,
-      UpdateConfigMode.UpdateBorrowLimitsInElevationGroupAgainstThisReserve.discriminator + 1 // discriminator + 1 matches the enum
-    );
 
     console.log('Creating user ===');
     const borrower = await newUser(env, kaminoMarket, [

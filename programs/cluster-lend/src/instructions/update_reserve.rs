@@ -1,13 +1,6 @@
 use anchor_lang::prelude::*;
 
-use crate::{
-    constants::VALUE_BYTE_MAX_ARRAY_LEN_MARKET_UPDATE,
-    errors::LendingError,
-    lending_market::lending_operations,
-    state::{LendingMarket, UpdateLendingMarketMode},
-    utils::{validate_numerical_bool, Fraction},
-    Reserve, UpdateConfigMode,
-};
+use crate::{lending_market::lending_operations, state::LendingMarket, Reserve, UpdateConfigMode};
 
 pub fn process_update_reserve(
     ctx: Context<UpdateReserveCtx>,
@@ -18,7 +11,6 @@ pub fn process_update_reserve(
         UpdateConfigMode::try_from(mode).map_err(|_| ProgramError::InvalidInstructionData)?;
 
     let reserve = &mut ctx.accounts.reserve.load_mut()?;
-    let market = ctx.accounts.lending_market.load()?;
     let name = reserve.config.token_info.symbol();
 
     msg!(

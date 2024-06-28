@@ -1,4 +1,5 @@
 mod borrow_obligation_liquidity;
+mod deposit_liquidity_collateral;
 mod deposit_obligation_collateral;
 mod deposit_reserve_liquidity;
 mod flash_borrow_reserve;
@@ -19,6 +20,7 @@ mod withdraw_obligation_collateral;
 mod withdraw_protocol_fees;
 
 pub use borrow_obligation_liquidity::*;
+pub use deposit_liquidity_collateral::*;
 pub use deposit_obligation_collateral::*;
 pub use deposit_reserve_liquidity::*;
 pub use flash_borrow_reserve::*;

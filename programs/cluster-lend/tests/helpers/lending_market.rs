@@ -16,7 +16,7 @@ pub struct LendingMarketFixture {
 }
 
 impl LendingMarketFixture {
-    pub fn init_market_ix(&self, quote_currency: [u8; 32]) -> Result<Instruction> {
+    pub fn init_market_ix(&self, quote_currency: [u8; 32]) -> Instruction {
         let lending_market_authority = lending_market_auth(&self.key);
 
         let accounts = cluster_lend::accounts::InitializeMarketCtx {
@@ -31,10 +31,10 @@ impl LendingMarketFixture {
             data: cluster_lend::instruction::InitializeMarket { quote_currency }.data(),
         };
 
-        Ok(ix)
+        ix
     }
 
-    pub fn update_market_ix(&self, mode: u64, value: [u8; 72]) -> Result<Instruction> {
+    pub fn update_market_ix(&self, mode: u64, value: [u8; 72]) -> Instruction {
         let accounts = cluster_lend::accounts::UpdateMarketCtx {
             owner: self.owner,
             lending_market: self.key,
@@ -46,10 +46,10 @@ impl LendingMarketFixture {
             data: cluster_lend::instruction::UpdateMarket { mode, value }.data(),
         };
 
-        Ok(ix)
+        ix
     }
 
-    pub fn update_owner_ix(&self, new_owner: Pubkey) -> Result<Instruction> {
+    pub fn update_owner_ix(&self, new_owner: Pubkey) -> Instruction {
         let accounts = cluster_lend::accounts::UpdateMarketOwnerCtx {
             owner: self.owner,
             lending_market: self.key,
@@ -62,6 +62,6 @@ impl LendingMarketFixture {
             data: cluster_lend::instruction::UpdateMarketOwner {}.data(),
         };
 
-        Ok(ix)
+        ix
     }
 }

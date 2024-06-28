@@ -41,7 +41,7 @@ pub const NULL_PUBKEY: pubkey::Pubkey = solana_program::pubkey::Pubkey::new_from
 
 pub const LENDING_MARKET_SIZE: usize = 4656;
 pub const RESERVE_SIZE: usize = 8616;
-pub const OBLIGATION_SIZE: usize = 3336;
+pub const OBLIGATION_SIZE: usize = 1936;
 pub const RESERVE_CONFIG_SIZE: usize = 744;
 pub const GLOBAL_UNHEALTHY_BORROW_VALUE: u64 = 50_000_000;
 

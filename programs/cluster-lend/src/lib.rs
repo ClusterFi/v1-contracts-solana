@@ -111,6 +111,14 @@ pub mod cluster_lend {
     }
 
     #[access_control(emergency_mode_disabled(&ctx.accounts.lending_market))]
+    pub fn deposit_liquidity_collateral(
+        ctx: Context<DepositLiquidityCollateralCtx>,
+        liquidity_amount: u64,
+    ) -> Result<()> {
+        process_deposit_liquidity_collateral(ctx, liquidity_amount)
+    }
+
+    #[access_control(emergency_mode_disabled(&ctx.accounts.lending_market))]
     pub fn withdraw_obligation_collateral(
         ctx: Context<WithdrawObligationCollateralCtx>,
         collateral_amount: u64,

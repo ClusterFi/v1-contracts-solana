@@ -88,6 +88,31 @@ pub fn deposit_reserve_liquidity_checks(accounts: &DepositReserveLiquidityAccoun
 
     Ok(())
 }
+
+
+pub fn deposit_liquidity_collateral_checks(
+    accounts: &crate::state::nested_accounts::DepositLiquidityCollateralAccounts,
+) -> Result<()> {
+    let reserve = accounts.reserve.load()?;
+
+    if reserve.liquidity.supply_vault == accounts.user_source_liquidity.key() {
+        msg!("Reserve liquidity supply cannot be used as the source liquidity provided");
+        return err!(LendingError::InvalidAccountInput);
+    }
+
+    if reserve.config.status() == ReserveStatus::Obsolete {
+        msg!("Reserve is not active");
+        return err!(LendingError::ReserveObsolete);
+    }
+
+    if reserve.version != PROGRAM_VERSION as u64 {
+        msg!("Reserve version does not match the program version");
+        return err!(LendingError::ReserveDeprecated);
+    }
+
+    Ok(())
+}
+
 pub fn redeem_reserve_collateral_checks(accounts: &RedeemReserveCollateralAccounts) -> Result<()> {
     let reserve = &accounts.reserve.load()?;
 

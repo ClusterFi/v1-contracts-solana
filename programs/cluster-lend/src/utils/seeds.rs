@@ -8,7 +8,7 @@ pub mod pda {
     use anchor_lang::prelude::Pubkey;
 
     use super::*;
-    use crate::ID;
+    use crate::{InitObligationArgs, ID};
 
     pub fn lending_market_auth(lending_market: &Pubkey) -> Pubkey {
         lending_market_auth_program_id(&ID, lending_market)
@@ -61,5 +61,27 @@ pub mod pda {
             collateral_supply_vault,
             fee_vault,
         }
+    }
+
+    pub fn init_obligation_pda(
+        owner: &Pubkey,
+        market: &Pubkey,
+        seed_1: &Pubkey,
+        seed_2: &Pubkey,
+        args: &InitObligationArgs,
+    ) -> Pubkey {
+        let (pda, _bump) = Pubkey::find_program_address(
+            &[
+                &[args.tag],
+                &[args.id],
+                owner.as_ref(),
+                market.as_ref(),
+                seed_1.as_ref(),
+                seed_2.as_ref(),
+            ],
+            &ID,
+        );
+
+        pda
     }
 }
