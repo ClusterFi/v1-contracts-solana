@@ -17,7 +17,7 @@ pub fn process_deposit_liquidity_collateral(
     ctx: Context<DepositLiquidityCollateralCtx>,
     liquidity_amount: u64,
 ) -> Result<()> {
-    check_refresh_ixs!(ctx, reserve);
+    // check_refresh_ixs!(ctx, reserve);
 
     msg!(
         "DepositLiquidityCollateral Reserve {} amount {}",

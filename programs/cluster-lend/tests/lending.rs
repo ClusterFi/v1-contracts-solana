@@ -2,7 +2,7 @@
 mod helpers;
 use std::rc::Rc;
 
-use anchor_lang::context;
+use anchor_lang::{context, Key};
 use anchor_spl::{
     associated_token::{create, get_associated_token_address, AssociatedToken},
     token::{self, spl_token::state::Account, TokenAccount},
@@ -24,7 +24,7 @@ use solana_sdk::{
     signature::Keypair,
     signer::Signer,
 };
-use spl::TokenAccountFixture;
+use spl::{MintFixture, TokenAccountFixture};
 use test::{
     TestFixture, PYTH_SOL_FEED, SOL_MINT_DECIMALS, SOL_QUOTE_CURRENCY, TEST_RESERVE_CONFIG,
     USDC_MINT_DECIMALS, USDC_QUOTE_CURRENCY,
@@ -43,8 +43,9 @@ async fn success_lending() {
 
     // create test user and supply test token
     let user = Keypair::new();
+    let mut user_liquidity_balance = 1_000_000_000;
     let user_liquidity_ata = liquidity_mint
-        .create_token_account_and_mint_to(&user, 1000)
+        .create_token_account_and_mint_to(&user, user_liquidity_balance)
         .await;
 
     // prepare market & reserve & obligation
@@ -88,7 +89,7 @@ async fn success_lending() {
                 reserve_f.update_reserve_ix(TEST_RESERVE_CONFIG),
                 reserve_f.refresh_ix(Some(PYTH_SOL_FEED)),
                 obligation_f.initialize_obligation_ix(init_obligation_args),
-                obligation_f.refresh_ix(),
+                obligation_f.refresh_ix(vec![]),
             ],
             &[&payer, &user, &lending_market_key, &reserve_key],
         )
@@ -105,6 +106,7 @@ async fn success_lending() {
                     &reserve_f,
                     user_liquidity_ata.key,
                 ),
+                reserve_f.refresh_ix(Some(PYTH_SOL_FEED)),
             ],
             &[&payer, &user],
         )
@@ -113,24 +115,42 @@ async fn success_lending() {
 
     // check user's balance
     let user_ata: TokenAccount = test_f.load_and_deserialize(&user_liquidity_ata.key).await;
-    // assert_eq!(user_ata.amount, balance - liquidity_amount);
+    assert_eq!(user_ata.amount, user_liquidity_balance - deposit_amount);
+    user_liquidity_balance = user_liquidity_balance - deposit_amount;
 
-    /*
-    // init obligation
-    let borrower = Keypair::new();
-    let obligation_f = ObligationFixture::new(
-        test_f.context.clone(),
-        reserve_f,
-        InitObligationArgs { id: 1, tag: 0 },
-        &borrower,
+    // check liquidity vault balance
+    let reseve_supply_vault: TokenAccount = test_f
+        .load_and_deserialize(&reserve_pdas.liquidity_supply_vault.key())
+        .await;
+    assert_eq!(deposit_amount, reseve_supply_vault.amount);
+
+    // check collateral vault balance
+    let collateral_supply_vault: TokenAccount = test_f
+        .load_and_deserialize(&&reserve_pdas.collateral_supply_vault.key())
+        .await;
+    assert_eq!(deposit_amount, collateral_supply_vault.amount);
+
+    // withdraw obligation
+    let user_collateral_ata_f = TokenAccountFixture::new(
+        Rc::clone(&test_f.context),
+        &reserve_pdas.collateral_ctoken_mint,
+        &user.pubkey(),
     )
-    .await
-    .unwrap();
+    .await;
 
-    // refresh obligation
-    let r = obligation_f.try_refresh_obligation().await;
+    let withdraw_amount = 1_000_000;
+    let r = test_f
+        .send_transaction(
+            &[
+                obligation_f.refresh_ix(vec![reserve_f.key]),
+                obligation_f.withdraw_collateral_ix(
+                    withdraw_amount,
+                    &reserve_f,
+                    user_collateral_ata_f.key,
+                ),
+            ],
+            &[&payer, &user],
+        )
+        .await;
     assert!(r.is_ok());
-
-    // withdraw token
-     */
 }

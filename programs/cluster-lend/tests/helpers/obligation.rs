@@ -38,14 +38,24 @@ impl ObligationFixture {
         ix
     }
 
-    pub fn refresh_ix(&self) -> Instruction {
+    pub fn refresh_ix(&self, reserve_keys: Vec<Pubkey>) -> Instruction {
+        let mut remain_accounts: Vec<AccountMeta> = reserve_keys
+            .iter()
+            .map(|t| AccountMeta {
+                is_signer: false,
+                is_writable: true,
+                pubkey: *t,
+            })
+            .collect();
+
         let accounts = cluster_lend::accounts::RefreshObligationCtx {
             lending_market: self.lending_market,
             obligation: self.key,
         };
+
         let ix = Instruction {
             program_id: cluster_lend::id(),
-            accounts: accounts.to_account_metas(Some(true)),
+            accounts: [accounts.to_account_metas(Some(true)), remain_accounts].concat(),
             data: cluster_lend::instruction::RefreshObligation {}.data(),
         };
 
@@ -120,19 +130,24 @@ impl ObligationFixture {
     pub fn withdraw_collateral_ix(
         &self,
         collateral_amount: u64,
-        withdraw_reserve: Pubkey,
-        reserve_source_collateral: Pubkey,
+        reserve: &ReserveFixture,
         user_destination_collateral: Pubkey,
     ) -> Instruction {
         let lending_market_authority = lending_market_auth(&self.lending_market);
+
+        let pdas = init_reserve_pdas_program_id(
+            &cluster_lend::ID,
+            &self.lending_market,
+            &reserve.liquidity_mint,
+        );
 
         let accounts = cluster_lend::accounts::WithdrawObligationCollateralCtx {
             owner: self.owner,
             lending_market: self.lending_market,
             lending_market_authority,
             obligation: self.key,
-            withdraw_reserve,
-            reserve_source_collateral,
+            withdraw_reserve: reserve.key,
+            reserve_source_collateral: pdas.collateral_supply_vault,
             user_destination_collateral,
             token_program: token::ID,
             instruction_sysvar_account: Instructions::id(),
@@ -151,21 +166,25 @@ impl ObligationFixture {
     pub fn borrow_liquidity_ix(
         &self,
         liquidity_amount: u64,
-        borrow_reserve: Pubkey,
-        reserve_source_liquidity: Pubkey,
-        borrow_reserve_liquidity_fee_receiver: Pubkey,
+        reserve: &ReserveFixture,
         user_destination_liquidity: Pubkey,
     ) -> Instruction {
         let lending_market_authority = lending_market_auth(&self.lending_market);
+
+        let pdas = init_reserve_pdas_program_id(
+            &cluster_lend::ID,
+            &self.lending_market,
+            &reserve.liquidity_mint,
+        );
 
         let accounts = cluster_lend::accounts::BorrowObligationLiquidityCtx {
             owner: self.owner,
             lending_market: self.lending_market,
             lending_market_authority,
             obligation: self.key,
-            borrow_reserve,
-            reserve_source_liquidity,
-            borrow_reserve_liquidity_fee_receiver,
+            borrow_reserve: reserve.key,
+            reserve_source_liquidity: pdas.liquidity_supply_vault,
+            borrow_reserve_liquidity_fee_receiver: pdas.fee_vault,
             user_destination_liquidity,
             token_program: token::ID,
             instruction_sysvar_account: Instructions::id(),
@@ -182,16 +201,21 @@ impl ObligationFixture {
     pub fn repay_liquidity_ix(
         &self,
         liquidity_amount: u64,
-        repay_reserve: Pubkey,
-        reserve_destination_liquidity: Pubkey,
+        reserve: &ReserveFixture,
         user_source_liquidity: Pubkey,
     ) -> Instruction {
+        let pdas = init_reserve_pdas_program_id(
+            &cluster_lend::ID,
+            &self.lending_market,
+            &reserve.liquidity_mint,
+        );
+
         let accounts = cluster_lend::accounts::RepayObligationLiquidityCtx {
             owner: self.owner,
             lending_market: self.lending_market,
             obligation: self.key,
-            repay_reserve,
-            reserve_destination_liquidity,
+            repay_reserve: reserve.key,
+            reserve_destination_liquidity: pdas.liquidity_supply_vault,
             user_source_liquidity,
             token_program: token::ID,
             instruction_sysvar_account: Instructions::id(),

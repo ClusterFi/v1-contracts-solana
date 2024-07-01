@@ -18,7 +18,7 @@ pub fn process_withdraw_obligation_collateral(
     collateral_amount: u64,
 ) -> Result<()> {
     let close_obligation = {
-        check_refresh_ixs!(ctx, withdraw_reserve);
+        // check_refresh_ixs!(ctx, withdraw_reserve);
 
         lending_checks::withdraw_obligation_collateral_checks(
             &WithdrawObligationCollateralAccounts {

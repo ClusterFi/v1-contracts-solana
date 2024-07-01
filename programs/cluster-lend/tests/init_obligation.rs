@@ -58,7 +58,7 @@ async fn success_init_update_obligation() {
 
     // try to refresh obligation
     let r = test_f
-        .send_transaction(&[obligation_f.refresh_ix()], &[&payer])
+        .send_transaction(&[obligation_f.refresh_ix(vec![])], &[&payer])
         .await;
     assert!(r.is_ok());
 }
